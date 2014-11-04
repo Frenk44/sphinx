@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>persoonsgegevens</name>
+        <size>8</size>
+        <type>PERIODIC</type>
+    </header>
+    <payload>
+        <item name='voornaam' type='text' />
+        <item name='achternaam' type='text' />
+        <item name='geslacht' type='enum' range='man,vrouw,onbekend' />
+        <item name='leeftijd' type='number' min='0' max='100' />
+        <item name='straatnaam' type='text' />
+        <item name='huisnummer' type='text' />
+        <item name='postcode' type='text' />
+        <item name='stad' type='text' range='Groningen,Assen,Leeuwarden'/>
+    </payload>
+</data>
