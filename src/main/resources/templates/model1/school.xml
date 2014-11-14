@@ -2,13 +2,11 @@
 <data>
     <header>
         <name>school</name>
-        <size>4</size>
-        <type>PERIODIC</type>
     </header>
     <payload>
         <item name='naam' type='text' />
         <item name='plaats' type='text' />
-        <item name='niveau' type='enum' range='VMBO,MBO,HBO,WO,POST-DOC' />
+        <item name='niveau' type='enum' range='VMBO,VWO,MBO,HBO,WO,POST-DOC' />
         <item name='duur' type='enum' range='minder dan 1 jaar,1 - 4 jaren,meer dan 4 jaar' />
     </payload>
 </data>

@@ -16,8 +16,9 @@ public class StimulatorTool extends JFrame {
     private static void createAndShowGUI() {
         Stimulator stimulator = new Stimulator();
         stimulator.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        stimulator.setSize(400, 300);
+        stimulator.setSize(500, 300);
         stimulator.setVisible(true);
+        stimulator.setTitle("Stimulator Tool");
 
         stimulator.start();
 

@@ -1,6 +1,6 @@
 package nl.fah.test;
 
-import nl.fah.monitor.SimpleModel;
+import nl.fah.monitor.data.SimpleModel;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;

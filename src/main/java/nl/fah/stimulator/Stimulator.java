@@ -26,21 +26,26 @@ import java.util.Vector;
 
 public class Stimulator extends JFrame {
     JComboBox dataList;
+    JComboBox dataType;
+    JTextField dataKey;
+    JTextField ipTextField;
+    JTextField portTextField;
+
     String modelPath = "/templates/model1";
     String dataName = "";
     String dataId = "";
     int dataSize = 0;
+    String multicast = "239.0.0.5";
+    int port = 12345;
 
     Hashtable enums = new Hashtable();
 
-    public void sendData(String message){
+    public void sendData(String message, String ip, int port){
 
-        String multicast = "239.0.0.5";
-        int port = 12345;
 
         InetAddress group = null;
         try {
-            group = InetAddress.getByName(multicast);
+            group = InetAddress.getByName(ip);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -119,9 +124,45 @@ public class Stimulator extends JFrame {
 
         for (int i = 0; i < files.size(); i++) {
             File ff = files.get(i);
-            dataListNames[i] = ff.getName().replace(".xml","");
+            //TODO: validate xml file and only add valid files
             System.out.println(ff.getName());
+
+            dataListNames[i] = ff.getName().replace(".xml","");
+
         }
+
+
+        dataKey = new JTextField(6);
+        dataType = new JComboBox(new String[]{"EVENT","CONTEXT","PERSISTENT"}){
+            // event-> on select make textBox only invalid if datatype=EVENT
+            public void actionPerformed(ActionEvent e) {
+                JComboBox cb = (JComboBox)e.getSource();
+                String dataTypeName = (String)cb.getSelectedItem();
+                System. out.println("dataTYpe=" + dataTypeName);
+               if (dataTypeName.contentEquals("EVENT")) {
+                   dataKey.setText("");
+                   dataKey.setEditable(false);
+               }
+                else dataKey.setEditable(true);
+            }
+        };
+        dataType.addActionListener(
+                new ActionListener() {
+
+                    public void actionPerformed(ActionEvent e) {
+                        JComboBox dataType = (JComboBox) e.getSource();
+                        String dataTypeString = (String) dataType.getSelectedItem();
+                        System.out.println("dataType:" + dataTypeString);
+
+                        if (dataTypeString.contentEquals("EVENT")){
+                            //dataKey.setText("");
+                            dataKey.setEditable(false);
+                        }
+                        else dataKey.setEditable(true);
+                    }
+
+                } );
+
 
         dataList = new JComboBox(dataListNames){
             // on select of dataname, fill the table
@@ -137,14 +178,6 @@ public class Stimulator extends JFrame {
                 System.out.println("cmbType:" + cmbType);
                 dataName = cmbType;
 
-                /*
-
-                TODO:
-                1) load xml template from resources/templates/model1 directory
-                2) fill table with attribute names
-                3) make 2nd column editable
-
-                 */
 
                 String fname = "/templates/model1/" + cmbType + ".xml";
                 InputStream is = Stimulator.class.getResourceAsStream(fname);
@@ -222,6 +255,11 @@ public class Stimulator extends JFrame {
             }
         });
 
+        ipTextField = new JTextField(8);
+        ipTextField.setText(multicast);
+        portTextField = new JTextField(4);
+        portTextField.setText( Integer.toString(port)  );
+
     }
 
     public static String getCharacterDataFromElement(Element e) {
@@ -251,16 +289,19 @@ public class Stimulator extends JFrame {
         JButton sendButton = new JButton(new AbstractAction("send") {
             @Override
             public void actionPerformed(ActionEvent e) {
+
+                String sel = (String)dataType.getSelectedItem();
+
                 String msg = (String) " <?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
                         "<data>\n" +
                         "    <header>\n" +
                         "        <name>"+   dataName + "</name>\n" +
                         "        <id>" + dataId + "</id>\n" +
                         "        <size>" + dataSize + "</size>\n" +
-                        "        <type>PERIODIC</type>\n" +
-                        "    </header>\n";
+                        "        <type>" + dataType.getSelectedItem() + "</type>\n";
+                if (!sel.contentEquals("EVENT")) msg += "        <key>" + dataKey.getText() + "</key>\n";
+                msg += "    </header>\n";
 
-                //TODO: get data from table
                 String payload = "    <payload>\n";
                 for (int i=0;i<tableData.getRowCount();i++){
                     payload += "        <item name='" + tableData.getValueAt(i,0).toString()
@@ -273,19 +314,32 @@ public class Stimulator extends JFrame {
                 msg += payload;
                 msg += "</data>\n";
 
-                // TODO: evaluate XML with data.xsd before sending
+                multicast = ipTextField.getText();
+                System.out.println("multicast=" + multicast);
+                System.out.println("port=" + portTextField.getText());
 
-
-                sendData(msg);
+                port =  Integer.parseInt( portTextField.getText().trim() );
+                sendData(msg, multicast, port);
                 System.out.println("send data");
             }
         });
 
         Panel ControlPanel = new Panel();
         ControlPanel.add(dataList);
-        ControlPanel.add(sendButton);
+        ControlPanel.add(dataType);
+        ControlPanel.add(dataKey);
+
+        Panel DestPanel = new Panel();
+        DestPanel.add(ipTextField);
+        DestPanel.add(portTextField);
+        DestPanel.add(sendButton);
+
+
         add(ControlPanel, BorderLayout.NORTH);
+        add(DestPanel);
+
         add(new JScrollPane(table), BorderLayout.CENTER);
+        add(DestPanel, BorderLayout.SOUTH);
     }
 
     final StimulatorModel tableData = new StimulatorModel();

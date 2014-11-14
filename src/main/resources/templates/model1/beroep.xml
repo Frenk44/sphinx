@@ -2,8 +2,6 @@
 <data>
     <header>
         <name>beroep</name>
-        <size>2</size>
-        <type>PERIODIC</type>
     </header>
     <payload>
         <item name='naam' type='text' />

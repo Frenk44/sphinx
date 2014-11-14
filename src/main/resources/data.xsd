@@ -12,9 +12,6 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element ref="name" minOccurs='1' maxOccurs='1'/>
-                <xs:element ref="key" minOccurs='0' maxOccurs='1'/>
-                <xs:element ref="size" minOccurs='1' maxOccurs='1'/>
-                <xs:element ref="type" minOccurs='1' maxOccurs='1'/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -22,7 +19,7 @@
     <xs:element name="payload">
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="item" minOccurs='0' maxOccurs='1'/>
+                <xs:element ref="item" minOccurs='1' maxOccurs='100'/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -32,11 +29,12 @@
     <xs:element name="size" type='xs:integer'/>
     <xs:element name="type" type='xs:string'/>
 
-    <xs:element name="item" type='xs:string'>
+    <xs:element name="item">
         <xs:complexType>
             <xs:attribute name="name" type="xs:string" />
             <xs:attribute name="value" type="xs:string" />
             <xs:attribute name="type" type="xs:string" />
+            <xs:attribute name="range" type="xs:string" />
         </xs:complexType>
     </xs:element>
 

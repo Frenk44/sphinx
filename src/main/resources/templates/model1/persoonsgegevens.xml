@@ -2,8 +2,6 @@
 <data>
     <header>
         <name>persoonsgegevens</name>
-        <size>8</size>
-        <type>PERIODIC</type>
     </header>
     <payload>
         <item name='voornaam' type='text' />
@@ -13,6 +11,6 @@
         <item name='straatnaam' type='text' />
         <item name='huisnummer' type='text' />
         <item name='postcode' type='text' />
-        <item name='stad' type='text' range='Groningen,Assen,Leeuwarden'/>
+        <item name='stad' type='enum' range='Groningen,Assen,Leeuwarden'/>
     </payload>
 </data>

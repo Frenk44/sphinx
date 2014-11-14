@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>geloof</name>
+    </header>
+    <payload>
+        <item name='naam' type='enum' range='HEIDEN,CHRISTELIJK,VOODOO,MOSLIM,AGNOST' />
+        <item name='oorsprong' type='enum' range='Romeinen,Turken,Nederlanders,Amerikanen,Marokkanen' />
+    </payload>
+</data>
