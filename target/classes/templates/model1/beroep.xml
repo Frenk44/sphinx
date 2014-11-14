@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>beroep</name>
+    </header>
+    <payload>
+        <item name='naam' type='text' />
+        <item name='niveau' type='enum' range='VMBO,MBO,HBO,WO' />
+    </payload>
+</data>
