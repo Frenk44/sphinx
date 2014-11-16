@@ -15,7 +15,7 @@ import java.io.IOException;
  */
 public class Validator {
 
-    static boolean Validate(String xml, String xsd, StringBuilder message){
+    public static boolean Validate(String xml, String xsd, StringBuilder message){
         Source schemaFile = new StreamSource(new File(xsd));
         Source xmlFile = new StreamSource(new File(xml));
         SchemaFactory schemaFactory = SchemaFactory
@@ -35,17 +35,9 @@ public class Validator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        message.append("xml is valid");
         return true;
     }
 
-    public static void main(String[] args) throws Exception {
-
-        StringBuilder m = new StringBuilder();
-        if (!Validate("src/main/resources/templates/model1/geloof.xml","src/main/resources/data.xsd", m )){
-
-            System.out.println(m);
-        }
-
-    }
 
 }

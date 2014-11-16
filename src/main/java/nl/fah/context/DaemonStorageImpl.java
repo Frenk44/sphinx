@@ -7,7 +7,7 @@ import java.util.Set;
 /**
  * Created by Haulussy on 4-11-2014.
  *
- * The context daeamon continuously listens to an UDP port
+ * The context daemon continuously listens to an UDP port
  * and stores all context data.
  *
  * UDP Commands are processed to

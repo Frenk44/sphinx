@@ -35,6 +35,8 @@
             <xs:attribute name="value" type="xs:string" />
             <xs:attribute name="type" type="xs:string" />
             <xs:attribute name="range" type="xs:string" />
+            <xs:attribute name="min" type="xs:string" />
+            <xs:attribute name="max" type="xs:string" />
         </xs:complexType>
     </xs:element>
 

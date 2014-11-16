@@ -122,13 +122,24 @@ public class Stimulator extends JFrame {
 
         String[] dataListNames = new String[files.size()];
 
+        int j=0;
         for (int i = 0; i < files.size(); i++) {
             File ff = files.get(i);
-            //TODO: validate xml file and only add valid files
-            System.out.println(ff.getName());
 
-            dataListNames[i] = ff.getName().replace(".xml","");
+            System.out.print("validating " + ff.getName() + " .... " );
 
+
+            StringBuilder m = new StringBuilder();
+            Boolean ok = Validator.Validate("src/main/resources/templates/model1/" + ff.getName(),"src/main/resources/data.xsd", m );
+
+            if (ok) {
+                System.out.println("OK" );
+                dataListNames[j] = ff.getName().replace(".xml", "");
+                j++;
+            }
+            else{
+                System.out.println("NOT OK!" + m );
+            }
         }
 
 

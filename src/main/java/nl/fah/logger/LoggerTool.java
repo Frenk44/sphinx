@@ -1,4 +1,4 @@
-package nl.fah.context;
+package nl.fah.logger;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -6,6 +6,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import javax.swing.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -15,21 +16,35 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
 
 /**
  * Created by Haulussy on 5-11-2014.
+ *
+ *  * TODO: make nice interface with record, pause, stop buttons and info panel
  */
-public class ContextDaemon {
+public class LoggerTool extends JFrame {
 
-    static DaemonStorage contextData;
+    static DataLogger dataLogger;
     static String multicast = "239.0.0.5";
     static int port = 12345;
     static String data;
 
-    private static class DaemonStorageProcess implements Runnable {
+    private static void createAndShowGUI() {
+        LoggerTool loggerTool = new LoggerTool();
+        loggerTool.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        loggerTool.setSize(250, 100);
+        loggerTool.setVisible(true);
+        loggerTool.setTitle("Logger Tool");
+
+        loggerTool.start();
+
+    }
+
+    public void start(){
+
+    }
+
+    private static class DaemonLoggerProcess implements Runnable {
         DatagramPacket packet;
         String dataId;
         String dataKey;
@@ -37,11 +52,7 @@ public class ContextDaemon {
         String dataType;
 
         public void run() {
-            // thread loop 1 Hz
-
-            System.out.println("Context DaemonStorageProcess start");
-
-            contextData = new DaemonStorageImpl();
+            dataLogger = new DataLoggerImpl();
 
             InetAddress group = null;
             MulticastSocket socket = null;
@@ -61,10 +72,9 @@ public class ContextDaemon {
             }
 
             while (true){
-                System.out.println("Context Daemon update");
+                System.out.println("Logger Daemon update");
 
                 dataKey = null;
-
 
                 byte[] buf = new byte[10*1024];
                 packet = new DatagramPacket(buf, buf.length);
@@ -75,10 +85,9 @@ public class ContextDaemon {
                 }
 
                 String received = new String(packet.getData());
-                System.out.println(packet.getAddress().getHostName() + " sends\n" + received);
+                //System.out.println(packet.getAddress().getHostName() + " sends\n" + received);
 
                 data = received.trim();
-
                 // data can be xml-data or command
 
                 // do some XML parsing
@@ -100,27 +109,6 @@ public class ContextDaemon {
                     e.printStackTrace();
                 }
 
-                NodeList cmdnodes = doc.getElementsByTagName("command");
-                if (cmdnodes != null && (cmdnodes.getLength() == 1)) {
-                    String type = cmdnodes.item(0).getAttributes().getNamedItem("type").getTextContent();
-                    String value = cmdnodes.item(0).getAttributes().getNamedItem("value").getTextContent();
-                    System.out.println("command received, type=" + type + ", value=" + value);
-
-                    if (type.contentEquals("GET")
-                            && value.contentEquals("LIST")){
-                        Collection<String> allData = contextData.getAll();
-
-                        Iterator<String> iterator = allData.iterator();
-                        while(iterator.hasNext()){
-                            String data = iterator.next();
-
-                            String destIP = cmdnodes.item(0).getAttributes().getNamedItem("dest").getTextContent();
-                            String destPort = cmdnodes.item(0).getAttributes().getNamedItem("port").getTextContent();
-
-                            sendData( data, destIP, Integer.parseInt(destPort));
-                        }
-                    }
-                }
 
                 NodeList nodes = doc.getElementsByTagName("data");
                 if (nodes != null && (nodes.getLength() ==1)){
@@ -153,62 +141,26 @@ public class ContextDaemon {
                     System.out.println("nodes==null or empty");
                 }
 
+                dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data);
 
-                if (dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
-                    System.out.println("store context data with key=" + dataKey);
-                    contextData.put(dataKey, data);
-                }
-
-                Set<String> aap = contextData.getList();
-                System.out.println("number of context items: " + aap.size());
+                System.out.println("LOG: nr. of items: " + dataLogger.getSize());
+                System.out.println(dataLogger.dumpLog());
 
             }
         }
     }
 
-    public static void sendData(String message, String IP, int PORT){
-
-        String multicast = IP;
-        int port = PORT;
-
-        InetAddress group = null;
-        try {
-            group = InetAddress.getByName(multicast);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-
-        //create Multicast socket to to pretending group
-        MulticastSocket s = null;
-        try {
-            s = new MulticastSocket(port);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (group != null && s != null) try {
-            s.joinGroup(group);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        byte[] b = message.getBytes();
-
-        DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
-        try {
-            s.send(dp);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        java.util.Date date = new java.util.Date();
-
-        System.out.println("data send");
-
-    }
-
     public static void main(String[] args) {
-        Thread t = new Thread(new DaemonStorageProcess());
+        Thread t = new Thread(new DaemonLoggerProcess());
         t.setPriority(Thread.MIN_PRIORITY);
         t.start();
+
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI();
+            }
+        });
+
+
     }
 }

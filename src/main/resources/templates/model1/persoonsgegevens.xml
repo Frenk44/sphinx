@@ -11,6 +11,6 @@
         <item name='straatnaam' type='text' />
         <item name='huisnummer' type='text' />
         <item name='postcode' type='text' />
-        <item name='stad' type='enum' range='Groningen,Assen,Leeuwarden'/>
+        <item name='stad' type='enum' range='Groningen,Assen,Leeuwarden' />
     </payload>
 </data>
