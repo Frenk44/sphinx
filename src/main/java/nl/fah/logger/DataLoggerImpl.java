@@ -1,5 +1,8 @@
 package nl.fah.logger;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -24,11 +27,31 @@ public class DataLoggerImpl implements DataLogger {
     public boolean saveLog(String name) {
         // stringefy dataLog and save to file in readable
         // xml format
+
+        String dump = "";
+
         Iterator<DataItem> it=dataLog.iterator();
 
         while(it.hasNext()){
             DataItem i = it.next();
+            dump += i.dataName;
+            dump += i.dataType;
+            dump += i.receivedTime;
+            dump += i.key;
+            dump += i.sender;
+            dump += i.dataPayload;
         }
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(name, "UTF-8");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        writer.println(dump);
+        writer.close();
         return false;
     }
 

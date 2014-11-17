@@ -4,6 +4,8 @@ package nl.fah.stimulator;
  * Created by Haulussy on 27-10-2014.
  */
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.CharacterData;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
@@ -40,8 +42,9 @@ public class Stimulator extends JFrame {
 
     Hashtable enums = new Hashtable();
 
-    public void sendData(String message, String ip, int port){
+    Logger logger = LoggerFactory.getLogger(Stimulator.class);
 
+    public void sendData(String message, String ip, int port){
 
         InetAddress group = null;
         try {
@@ -75,7 +78,7 @@ public class Stimulator extends JFrame {
 
         java.util.Date date = new java.util.Date();
 
-        System.out.println("data send");
+        logger.debug("data send");
 
     }
 
@@ -112,13 +115,12 @@ public class Stimulator extends JFrame {
 
 
     public void init(){
-        System.out.println("scan /resources/templates/model1 directory");
         URL location = this.getClass().getResource( modelPath);
         String FullPath = location.getPath();
-        System.out.println(FullPath);
+        logger.debug("scanning directory:" + FullPath);
 
         files = new ArrayList<File>(Arrays.asList(new File(FullPath).listFiles()));
-        System.out.println(files.size());
+        logger.info("number of xml-files:" + files.size());
 
         String[] dataListNames = new String[files.size()];
 
@@ -126,22 +128,20 @@ public class Stimulator extends JFrame {
         for (int i = 0; i < files.size(); i++) {
             File ff = files.get(i);
 
-            System.out.print("validating " + ff.getName() + " .... " );
-
+            logger.info("validating " + ff.getName());
 
             StringBuilder m = new StringBuilder();
             Boolean ok = Validator.Validate("src/main/resources/templates/model1/" + ff.getName(),"src/main/resources/data.xsd", m );
 
             if (ok) {
-                System.out.println("OK" );
+                logger.info(ff.getName() + " is OK" );
                 dataListNames[j] = ff.getName().replace(".xml", "");
                 j++;
             }
             else{
-                System.out.println("NOT OK!" + m );
+                logger.info(ff.getName() + " is NOT OK, reason=" + m );
             }
         }
-
 
         dataKey = new JTextField(6);
         dataType = new JComboBox(new String[]{"EVENT","CONTEXT","PERSISTENT"}){
@@ -149,7 +149,7 @@ public class Stimulator extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 JComboBox cb = (JComboBox)e.getSource();
                 String dataTypeName = (String)cb.getSelectedItem();
-                System. out.println("dataTYpe=" + dataTypeName);
+                logger.debug("dataTYpe=" + dataTypeName);
                if (dataTypeName.contentEquals("EVENT")) {
                    dataKey.setText("");
                    dataKey.setEditable(false);
@@ -163,10 +163,9 @@ public class Stimulator extends JFrame {
                     public void actionPerformed(ActionEvent e) {
                         JComboBox dataType = (JComboBox) e.getSource();
                         String dataTypeString = (String) dataType.getSelectedItem();
-                        System.out.println("dataType:" + dataTypeString);
+                        logger.debug("dataType:" + dataTypeString);
 
                         if (dataTypeString.contentEquals("EVENT")){
-                            //dataKey.setText("");
                             dataKey.setEditable(false);
                         }
                         else dataKey.setEditable(true);
@@ -186,21 +185,20 @@ public class Stimulator extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 JComboBox jcmbType = (JComboBox) e.getSource();
                 String cmbType = (String) jcmbType.getSelectedItem();
-                System.out.println("cmbType:" + cmbType);
+                logger.debug("cmbType:" + cmbType);
                 dataName = cmbType;
 
 
                 String fname = "/templates/model1/" + cmbType + ".xml";
                 InputStream is = Stimulator.class.getResourceAsStream(fname);
-                System.out.println("reading: " + fname);
+                logger.debug("reading: " + fname);
                 dataName = cmbType;
 
                 String xml = getStringFromInputStream(is);
 
-                System.out.println(xml);
+                logger.debug(xml);
 
-
-                    DocumentBuilderFactory dbf =
+                DocumentBuilderFactory dbf =
                             DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = null;
                 try {
@@ -222,20 +220,20 @@ public class Stimulator extends JFrame {
                     }
                 }
                 NodeList headernodes = doc.getElementsByTagName("header");
-                System.out.println("headernodes length"  + headernodes.getLength());
+                logger.debug("headernodes length"  + headernodes.getLength());
 
                 NodeList payloadnodes = doc.getElementsByTagName("payload");
-                System.out.println("datanodes length:" + payloadnodes.getLength());
+                logger.debug("datanodes length:" + payloadnodes.getLength());
 
                 Node headernode = headernodes.item(0);
                 Node payloadnode = payloadnodes.item(0);
 
-                System.out.println("headernode nr. of childs:" + headernode.getChildNodes().getLength());
-                System.out.println("payloadnode nr. of childs:" + payloadnode.getChildNodes().getLength());
+                logger.debug("headernode nr. of childs:" + headernode.getChildNodes().getLength());
+                logger.debug("payloadnode nr. of childs:" + payloadnode.getChildNodes().getLength());
 
                 for (int i = 0; i < headernode.getChildNodes().getLength(); i++) {
                     if (!headernode.getChildNodes().item(i).getNodeName().contentEquals("#text")) {
-                        System.out.println(headernode.getChildNodes().item(i).getNodeName() + "=" + headernode.getChildNodes().item(i).getTextContent());
+                        logger.debug(headernode.getChildNodes().item(i).getNodeName() + "=" + headernode.getChildNodes().item(i).getTextContent());
                     }
                 }
 
@@ -246,11 +244,11 @@ public class Stimulator extends JFrame {
                     if (payloadnode.getChildNodes().item(i).getNodeName().contentEquals("item")) {
                         String name = payloadnode.getChildNodes().item(i).getAttributes().getNamedItem("name").getTextContent();
                         String type = payloadnode.getChildNodes().item(i).getAttributes().getNamedItem("type").getTextContent();
-                        System.out.println(name + " [" + type + "]");
+                        logger.debug(name + " [" + type + "]");
 
                         if (type.contentEquals("enum")) {
                             String range = payloadnode.getChildNodes().item(i).getAttributes().getNamedItem("range").getTextContent();
-                            System.out.println(name + " has range [" + range + "] put at location:" + i);
+                            logger.debug(name + " has range [" + range + "] put at location:" + i);
                             enums.put(j, range);
                         }
 
@@ -326,12 +324,12 @@ public class Stimulator extends JFrame {
                 msg += "</data>\n";
 
                 multicast = ipTextField.getText();
-                System.out.println("multicast=" + multicast);
-                System.out.println("port=" + portTextField.getText());
+                logger.debug("multicast=" + multicast);
+                logger.debug("port=" + portTextField.getText());
 
                 port =  Integer.parseInt( portTextField.getText().trim() );
                 sendData(msg, multicast, port);
-                System.out.println("send data");
+                logger.debug("send data");
             }
         });
 
@@ -360,9 +358,9 @@ public class Stimulator extends JFrame {
         public TableCellEditor getCellEditor(int row, int column)
         {
             int modelColumn = convertColumnIndexToModel( column );
-            System.out.println( "modelColumn :" + modelColumn);
-            System.out.println( "row :" + row);
-            System.out.println( "column :" + column);
+            logger.debug( "modelColumn :" + modelColumn);
+            logger.debug( "row :" + row);
+            logger.debug( "column :" + column);
             // determine if table at pos (row,column) is of type enumeration
             String[] items = getValues(row,column);
 

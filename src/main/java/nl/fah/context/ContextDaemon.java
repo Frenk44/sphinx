@@ -1,5 +1,7 @@
 package nl.fah.context;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -17,7 +19,6 @@ import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
 
 /**
  * Created by Haulussy on 5-11-2014.
@@ -29,6 +30,7 @@ public class ContextDaemon {
     static int port = 12345;
     static String data;
 
+
     private static class DaemonStorageProcess implements Runnable {
         DatagramPacket packet;
         String dataId;
@@ -36,10 +38,10 @@ public class ContextDaemon {
         String dataName;
         String dataType;
 
-        public void run() {
-            // thread loop 1 Hz
+        Logger logger = LoggerFactory.getLogger(DaemonStorageProcess.class);
 
-            System.out.println("Context DaemonStorageProcess start");
+        public void run() {
+            logger.info("Context DaemonStorageProcess start");
 
             contextData = new DaemonStorageImpl();
 
@@ -61,7 +63,7 @@ public class ContextDaemon {
             }
 
             while (true){
-                System.out.println("Context Daemon update");
+                logger.info("Context Daemon update");
 
                 dataKey = null;
 
@@ -75,7 +77,7 @@ public class ContextDaemon {
                 }
 
                 String received = new String(packet.getData());
-                System.out.println(packet.getAddress().getHostName() + " sends\n" + received);
+                logger.info(packet.getAddress().getHostName() + " sends\n" + received);
 
                 data = received.trim();
 
@@ -104,7 +106,7 @@ public class ContextDaemon {
                 if (cmdnodes != null && (cmdnodes.getLength() == 1)) {
                     String type = cmdnodes.item(0).getAttributes().getNamedItem("type").getTextContent();
                     String value = cmdnodes.item(0).getAttributes().getNamedItem("value").getTextContent();
-                    System.out.println("command received, type=" + type + ", value=" + value);
+                    logger.info("command received, type=" + type + ", value=" + value);
 
                     if (type.contentEquals("GET")
                             && value.contentEquals("LIST")){
@@ -150,17 +152,16 @@ public class ContextDaemon {
                     }
                 }
                 else{
-                    System.out.println("nodes==null or empty");
+                    logger.info("nodes==null or empty");
                 }
 
 
                 if (dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
-                    System.out.println("store context data with key=" + dataKey);
+                    logger.info("store context data with key=" + dataKey);
                     contextData.put(dataKey, data);
                 }
 
-                Set<String> aap = contextData.getList();
-                System.out.println("number of context items: " + aap.size());
+                logger.info("number of context items: " + contextData.getList().size());
 
             }
         }
@@ -170,6 +171,7 @@ public class ContextDaemon {
 
         String multicast = IP;
         int port = PORT;
+        Logger logger = LoggerFactory.getLogger(DaemonStorageProcess.class);
 
         InetAddress group = null;
         try {
@@ -202,7 +204,7 @@ public class ContextDaemon {
 
         java.util.Date date = new java.util.Date();
 
-        System.out.println("data send");
+        logger.info("data send");
 
     }
 
