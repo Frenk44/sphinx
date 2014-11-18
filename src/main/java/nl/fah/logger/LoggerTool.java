@@ -62,6 +62,7 @@ public class LoggerTool extends JFrame {
         String dataKey;
         String dataName;
         String dataType;
+        int dataNrOfItems;
 
         public void run() {
             dataLogger = new DataLoggerImpl();
@@ -147,8 +148,11 @@ public class LoggerTool extends JFrame {
 
                     NodeList nodes = doc.getElementsByTagName("data");
                     if (nodes != null && (nodes.getLength() == 1)) {
-
+                        dataNrOfItems = 0;
                         for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                            if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                                dataNrOfItems = nodes.item(0).getChildNodes().item(j).getChildNodes().getLength();
+                            }
                             if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
                                 for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
@@ -172,7 +176,7 @@ public class LoggerTool extends JFrame {
                         logger.debug("nodes==null or empty");
                     }
 
-                    dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data);
+                    dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data, dataNrOfItems);
 
                     logger.debug("LOG: nr. of items: " + dataLogger.getSize());
                     logInfoLabel.setText("LOG: nr. of items: " + dataLogger.getSize());

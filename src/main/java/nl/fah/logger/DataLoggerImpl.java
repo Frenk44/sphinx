@@ -3,6 +3,7 @@ package nl.fah.logger;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ public class DataLoggerImpl implements DataLogger {
         public String key;
         public String dataName;
         public String dataType;
+        public int dataNrOfItems;
         public String dataPayload;
     }
     List<DataItem> dataLog = new ArrayList<>();
@@ -29,17 +31,19 @@ public class DataLoggerImpl implements DataLogger {
         // xml format
 
         String dump = "";
+        String ret = "\n";
 
+        dump += dataLog.size() + ret;
         Iterator<DataItem> it=dataLog.iterator();
 
         while(it.hasNext()){
             DataItem i = it.next();
-            dump += i.dataName;
-            dump += i.dataType;
-            dump += i.receivedTime;
-            dump += i.key;
-            dump += i.sender;
-            dump += i.dataPayload;
+            dump += i.dataName + ret;
+            dump += i.dataType + ret;
+            dump += i.receivedTime + ret;
+            dump += i.key + ret;
+            dump += i.sender + ret;
+            dump += i.dataPayload + ret;
         }
 
         PrintWriter writer = null;
@@ -67,7 +71,7 @@ public class DataLoggerImpl implements DataLogger {
 
 
     @Override
-    public void log(String sender, String key, String dataName, String dataType, String dataPayload){
+    public void log(String sender, String key, String dataName, String dataType, String dataPayload, int nrOfItems){
         DataItem data = new DataItem();
 
         data.dataName = dataName;
@@ -75,7 +79,9 @@ public class DataLoggerImpl implements DataLogger {
         data.dataType = dataType;
         data.key = key;
         data.sender = sender;
-        data.receivedTime = new Date();
+        java.util.Date d = new java.util.Date();
+        data.receivedTime = new Timestamp(d.getTime());
+        data.dataNrOfItems = nrOfItems;
 
         dataLog.add(data);
     }

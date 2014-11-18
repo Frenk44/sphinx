@@ -1,4 +1,4 @@
-package nl.fah.monitor.message;
+package nl.fah.monitor.data;
 
 /**
  * Created by Haulussy on 27-10-2014.
@@ -28,30 +28,27 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Vector;
 
-public class MessageMonitor extends JFrame {
+public class DataMonitor extends JFrame {
 
-    final MessageModel tableData = new MessageModel();
+    final SimpleModel tableData = new SimpleModel();
     JTable table = new JTable(tableData);
-
-    String multicast = "239.0.0.5";
-    int port = 12345;
-
     Label infoLabel;
-    TextField ipTextField = new TextField(multicast);
-    TextField portTextField = new TextField("12345");
+    JTextField ipTextField;
+    JTextField portTextField;
 
     Thread t = new Thread(new InputProcess());
     boolean pause = true;
-
-    Logger logger = LoggerFactory.getLogger(MessageMonitor.class);
+    String multicast = "239.0.0.5";
+    int port = 12345;
 
     private class InputProcess implements Runnable {
+        Logger logger = LoggerFactory.getLogger(DataMonitor.class);
 
         String data;
         String dataName;
-        String dataId = "NOT SET";
+        String dataType;
         String dataKey = "NOT SET";
-        String dataType = "NOT SET";
+        String dataId = "NOT SET";
 
         long timeLastMouseEvent;
 
@@ -67,14 +64,15 @@ public class MessageMonitor extends JFrame {
                 public void mouseClicked(MouseEvent e)
                 {
                     Long n = (new Date().getTime() - timeLastMouseEvent);
-                    logger.debug("mouse clicked" + n);
+                    logger.debug("mouse clicked");
+
                     if (e.getClickCount() == 2 && !e.isConsumed()) {
                         logger.debug("double click");
                     }
                     else{
                         //only accept single click if time last
-                        if   ( n > 1000)
-                            logger.debug("single click");
+                      if   ( n > 1000)
+                          logger.debug("single click");
                     }
 
                     timeLastMouseEvent = new Date().getTime();
@@ -89,11 +87,9 @@ public class MessageMonitor extends JFrame {
             InetAddress group = null;
             MulticastSocket socket = null;
 
-
             // outerloop
             while(true) {
                 try {
-                    logger.debug("RESET");
                     while(true){
                         if (!pause){
                             logger.info("START LOGGING");
@@ -112,31 +108,25 @@ public class MessageMonitor extends JFrame {
 
                             try {
                                 socket.joinGroup(group);
-
-                                logger.info("listening to " + multicast + ":" +  port);
-                                break;
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            Thread.sleep(250);
+
+                            break;
                         }
-                        else Thread.sleep(1000);
+                        else Thread.sleep(250);
                     }
 
                     //innerloop
                     while(true) {
                         if (pause){
                             try {
-                                logger.debug("LEAVE GROUP\n");
                                 socket.leaveGroup(group);
-                                logger.info("STOP LOGGING\n");
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                             break;
                         }
-
-                        dataKey = "";
                         update(socket);
                         Thread.sleep(10);
                     }
@@ -158,9 +148,12 @@ public class MessageMonitor extends JFrame {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
             if (!TimeOut) {
+
+                java.util.Date date = new java.util.Date();
                 String received = new String(packet.getData());
-                logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
+                logger.info(packet.getAddress().getHostName() + " sends\n" + received);
 
                 // do some XML parsing
                 DocumentBuilderFactory dbf =
@@ -180,110 +173,88 @@ public class MessageMonitor extends JFrame {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                // TODO: check xml validity,using the VALIDATOR
 
                 NodeList nodes = doc.getElementsByTagName("data");
 
+                dataName = null;
+                dataKey = "";
+                dataType = "";
+                dataId = "";
+
                 if (nodes != null && (nodes.getLength() == 1)) {
 
-                    tableData.clearData();
                     for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
                         if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
                             for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                                Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
-                                if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
+                                Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
+                                logger.debug(jj + ". [" + nnn.getNodeName() + "]");
+                                if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
                                     if (nnn.getNodeName().contentEquals("name")) {
-                                        //System.out.println("NAME=" +  nnn.getTextContent());
+                                        logger.debug("NAME=" + nnn.getTextContent());
                                         dataName = nnn.getTextContent();
 
-                                        Vector v = new Vector();
-                                        v.add(new String("MESSAGE"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataName));
-                                        tableData.addText(v);
-
-                                    } else if (nnn.getNodeName().contentEquals("id")) {
-                                        //System.out.println("ID=" + nnn.getTextContent());
+                                    }
+                                    if (nnn.getNodeName().contentEquals("id")) {
+                                        logger.debug("ID=" + nnn.getTextContent());
                                         dataId = nnn.getTextContent();
-                                        Vector v = new Vector();
-                                        v.add(new String("ID"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataId));
-                                        tableData.addText(v);
-                                    } else if (nnn.getNodeName().contentEquals("key")) {
-                                        //System.out.println("ID=" + nnn.getTextContent());
-                                        dataKey = nnn.getTextContent();
-                                    } else if (nnn.getNodeName().contentEquals("type")) {
-                                        System.out.println("TYPE=" + nnn.getTextContent());
+                                    }
+
+                                    if (nnn.getNodeName().contentEquals("type")) {
+                                        logger.debug("TYPE=" + nnn.getTextContent());
                                         dataType = nnn.getTextContent();
-                                        Vector v = new Vector();
-                                        v.add(new String("TYPE"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataType));
-                                        tableData.addText(v);
+                                    }
+
+                                    if (nnn.getNodeName().contentEquals("key")) {
+                                        logger.debug("KEY=" + nnn.getTextContent());
+                                        dataKey = nnn.getTextContent();
                                     }
                                 }
                             }
                         } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
                             Node payload = nodes.item(0).getChildNodes().item(j);
 
-                            Date date = new Date();
-                            //getTime() returns current time in milliseconds
-                            long time = date.getTime();
-                            //Passed the milliseconds to constructor of Timestamp class
-                            Timestamp ts = new Timestamp(time);
-
-                            logger.debug(ts.toString());
-
-                            Vector v2 = new Vector();
-                            v2.add(new String("TIME"));
-                            v2.add(new String("TEXT"));
-                            v2.add(new String(ts.toString()));
-                            tableData.addText(v2);
-
-                            if (dataKey != null && !dataKey.isEmpty()) {
-                                Vector v3 = new Vector();
-                                v3.add(new String("KEY"));
-                                v3.add(new String("TEXT"));
-                                v3.add(new String(dataKey));
-                                tableData.addText(v3);
-                            }
-
                             logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
                             for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                                //             System.out.println("childnode " + k);
-                                //             System.out.println("   type: " + payload.getChildNodes().item(k).getNodeType());
-                                //             System.out.println("   value: " + payload.getChildNodes().item(k).getNodeValue());
-                                //             System.out.println("   name: " + payload.getChildNodes().item(k).getNodeName());
-                                //             System.out.println("   text: " + payload.getChildNodes().item(k).getTextContent());
+                                logger.debug("childnode " + k);
+                                logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
+                                logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
+                                logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
+                                logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
                                 if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
-                                    //               System.out.println("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
-                                    NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+                                    logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
+                                    NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
 
-                                    logger.debug(aaaa.getNamedItem("name").getNodeValue() +
-                                            "  value: " + aaaa.getNamedItem("value").getNodeValue() +
-                                            "  type: " + aaaa.getNamedItem("type").getNodeValue());
-
-
-                                    Vector v = new Vector();
-                                    v.add(new String(aaaa.getNamedItem("name").getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem("type").getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem("value").getNodeValue()));
-                                    tableData.addText(v);
-
-                                    if (aaaa.getNamedItem("range") != null)
-                                        logger.debug("  range: " + aaaa.getNamedItem("range").getNodeValue());
+                                    logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
+                                            "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
+                                            "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
+                                    if (namedNodeMap.getNamedItem("range") != null)
+                                        logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
                                 }
                             }
                         }
                     }
                 } else {
-                    logger.info("nodes==null or empty");
+                    logger.debug("nodes==null or empty");
                 }
+
+                if (dataName != null) {
+                    data = received.trim();
+                    Vector v = new Vector();
+                    v.add((new Timestamp(date.getTime())).toString());
+                    v.add(new String(dataName));
+                    v.add(new String(dataType));
+                    v.add(new String(dataKey));
+
+                    v.add(new String(data));
+                    tableData.addText(v);
+                }
+                // TODO : auto scroll down
             }
-            // TODO : auto scroll down
+            else{
+                // time out
+            }
         }
     }
 
@@ -292,13 +263,14 @@ public class MessageMonitor extends JFrame {
         t.start();
     }
 
-    public MessageMonitor() {
+    public DataMonitor(String ip) {
+        final JTextField textField  = new JTextField();
         setLayout(new BorderLayout());
+        multicast = ip;
 
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                logger.debug("ButtonTest::start CALLED");
                 infoLabel.setText("monitoring");
                 pause = false;
             }
@@ -307,7 +279,6 @@ public class MessageMonitor extends JFrame {
         JButton stopButton = new JButton(new AbstractAction("stop") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                logger.debug("ButtonTest::stop CALLED");
                 infoLabel.setText("stopped");
                 pause = true;
             }
@@ -316,13 +287,61 @@ public class MessageMonitor extends JFrame {
         JButton clearButton = new JButton(new AbstractAction("clear") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                MessageModel dm = (MessageModel)table.getModel();
+                SimpleModel dm = (SimpleModel)table.getModel();
                 dm.clearData();
             }
         });
 
-        ipTextField.setText(multicast);
-        portTextField.setText(Integer.toString(port));
+        JButton contextButton = new JButton(new AbstractAction("context") {
+            Logger logger = LoggerFactory.getLogger(DataMonitor.class);
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String multicast = "239.0.0.5";
+                int port = 12345;
+
+                String message = "<command type=\"GET\" value=\"LIST\" dest=\""
+                        + multicast+"\" port=\"" + port + "\" />";
+
+                InetAddress group = null;
+                try {
+                    group = InetAddress.getByName(multicast);
+                } catch (UnknownHostException e6) {
+                    e6.printStackTrace();
+                }
+
+                //create Multicast socket to to pretending group
+                MulticastSocket s = null;
+                try {
+                    s = new MulticastSocket(port);
+                } catch (IOException e7) {
+                    e7.printStackTrace();
+                }
+                if (group != null && s != null) try {
+                    s.joinGroup(group);
+                } catch (IOException e8) {
+                    e8.printStackTrace();
+                }
+
+                int  count = 0;
+                byte[] b = message.getBytes();
+
+                DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
+                try {
+                    s.send(dp);
+                } catch (IOException e9) {
+                    e9.printStackTrace();
+                }
+
+                java.util.Date date = new java.util.Date();
+                logger.debug("context cmd send");
+
+            }
+
+        });
+
+        ipTextField = new JTextField(multicast, 8);
+        portTextField = new JTextField(String.valueOf(port), 4);
 
         Panel ControlPanel = new Panel();
         ControlPanel.add(ipTextField);
@@ -330,6 +349,10 @@ public class MessageMonitor extends JFrame {
         ControlPanel.add(startButton);
         ControlPanel.add(stopButton);
         ControlPanel.add(clearButton);
+        ControlPanel.add(contextButton);
+
+        Panel InfoPanel = new Panel();
+        add(InfoPanel, BorderLayout.SOUTH);
 
         add(ControlPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);

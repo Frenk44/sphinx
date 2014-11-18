@@ -128,8 +128,6 @@ public class Stimulator extends JFrame {
         for (int i = 0; i < files.size(); i++) {
             File ff = files.get(i);
 
-            logger.info("validating " + ff.getName());
-
             StringBuilder m = new StringBuilder();
             Boolean ok = Validator.Validate("src/main/resources/templates/model1/" + ff.getName(),"src/main/resources/data.xsd", m );
 
@@ -150,11 +148,11 @@ public class Stimulator extends JFrame {
                 JComboBox cb = (JComboBox)e.getSource();
                 String dataTypeName = (String)cb.getSelectedItem();
                 logger.debug("dataTYpe=" + dataTypeName);
-               if (dataTypeName.contentEquals("EVENT")) {
+/*               if (dataTypeName.contentEquals("EVENT")) {
                    dataKey.setText("");
                    dataKey.setEditable(false);
                }
-                else dataKey.setEditable(true);
+                else dataKey.setEditable(true);*/
             }
         };
         dataType.addActionListener(
@@ -166,6 +164,7 @@ public class Stimulator extends JFrame {
                         logger.debug("dataType:" + dataTypeString);
 
                         if (dataTypeString.contentEquals("EVENT")){
+                            dataKey.setText("");
                             dataKey.setEditable(false);
                         }
                         else dataKey.setEditable(true);
@@ -322,6 +321,8 @@ public class Stimulator extends JFrame {
 
                 msg += payload;
                 msg += "</data>\n";
+
+                logger.info(msg);
 
                 multicast = ipTextField.getText();
                 logger.debug("multicast=" + multicast);

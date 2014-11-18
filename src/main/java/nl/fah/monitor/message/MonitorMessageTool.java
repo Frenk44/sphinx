@@ -9,7 +9,7 @@ import javax.swing.*;
 public class MonitorMessageTool extends JFrame {
 
     private static void createAndShowGUI() {
-        MessageMonitor messageMonitor = new MessageMonitor("239.0.0.5");
+        MessageMonitor messageMonitor = new MessageMonitor();
         messageMonitor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         messageMonitor.setSize(400, 300);
         messageMonitor.setVisible(true);

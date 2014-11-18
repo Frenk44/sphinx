@@ -8,7 +8,7 @@ public class SimpleModel extends AbstractTableModel {
     String[] columnNames = {"received",
             "name",
             "type",
-    "key"};
+            "key"};
 
     protected Vector listData = new Vector();
 
