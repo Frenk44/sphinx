@@ -4,6 +4,7 @@ package nl.fah.monitor.message;
  * Created by Haulussy on 27-10-2014.
  */
 
+import nl.fah.common.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -56,8 +57,6 @@ public class MessageMonitor extends JFrame {
         long timeLastMouseEvent;
 
         DatagramPacket packet;
-
-        boolean isAlreadyOneClick;
 
         public void run() {
 
@@ -194,8 +193,7 @@ public class MessageMonitor extends JFrame {
                                 Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
                                 if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
-                                    if (nnn.getNodeName().contentEquals("name")) {
-                                        //System.out.println("NAME=" +  nnn.getTextContent());
+                                    if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
                                         dataName = nnn.getTextContent();
 
                                         Vector v = new Vector();
@@ -204,19 +202,16 @@ public class MessageMonitor extends JFrame {
                                         v.add(new String(dataName));
                                         tableData.addText(v);
 
-                                    } else if (nnn.getNodeName().contentEquals("id")) {
-                                        //System.out.println("ID=" + nnn.getTextContent());
+                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
                                         dataId = nnn.getTextContent();
                                         Vector v = new Vector();
                                         v.add(new String("ID"));
                                         v.add(new String("TEXT"));
                                         v.add(new String(dataId));
                                         tableData.addText(v);
-                                    } else if (nnn.getNodeName().contentEquals("key")) {
-                                        //System.out.println("ID=" + nnn.getTextContent());
+                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
                                         dataKey = nnn.getTextContent();
-                                    } else if (nnn.getNodeName().contentEquals("type")) {
-                                        System.out.println("TYPE=" + nnn.getTextContent());
+                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
                                         dataType = nnn.getTextContent();
                                         Vector v = new Vector();
                                         v.add(new String("TYPE"));
@@ -230,7 +225,6 @@ public class MessageMonitor extends JFrame {
                             Node payload = nodes.item(0).getChildNodes().item(j);
 
                             Date date = new Date();
-                            //getTime() returns current time in milliseconds
                             long time = date.getTime();
                             //Passed the milliseconds to constructor of Timestamp class
                             Timestamp ts = new Timestamp(time);
@@ -253,28 +247,21 @@ public class MessageMonitor extends JFrame {
 
                             logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
                             for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                                //             System.out.println("childnode " + k);
-                                //             System.out.println("   type: " + payload.getChildNodes().item(k).getNodeType());
-                                //             System.out.println("   value: " + payload.getChildNodes().item(k).getNodeValue());
-                                //             System.out.println("   name: " + payload.getChildNodes().item(k).getNodeName());
-                                //             System.out.println("   text: " + payload.getChildNodes().item(k).getTextContent());
-                                if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
-                                    //               System.out.println("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
+                                if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
                                     NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
 
-                                    logger.debug(aaaa.getNamedItem("name").getNodeValue() +
-                                            "  value: " + aaaa.getNamedItem("value").getNodeValue() +
-                                            "  type: " + aaaa.getNamedItem("type").getNodeValue());
-
+                                    logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                            "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                            "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
 
                                     Vector v = new Vector();
-                                    v.add(new String(aaaa.getNamedItem("name").getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem("type").getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem("value").getNodeValue()));
+                                    v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
+                                    v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
+                                    v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
                                     tableData.addText(v);
 
-                                    if (aaaa.getNamedItem("range") != null)
-                                        logger.debug("  range: " + aaaa.getNamedItem("range").getNodeValue());
+                                    if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
+                                        logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
                                 }
                             }
                         }
@@ -286,7 +273,6 @@ public class MessageMonitor extends JFrame {
             // TODO : auto scroll down
         }
     }
-
 
     public void start(){
         t.start();

@@ -1,4 +1,4 @@
-package nl.fah.context;
+package nl.fah.persistence;
 
 import nl.fah.common.Types;
 import org.slf4j.Logger;
@@ -22,12 +22,16 @@ import java.util.Collection;
 import java.util.Iterator;
 
 /**
- * Created by Haulussy on 5-11-2014.
+ * Created by Haulussy on 19-11-2014.
+ *
+ * The persistence daemon operates like the context daemon,
+ *  however xml-data is stored on disk (REST db)
  */
-public class ContextDaemon {
+public class PersistenceDaemon {
 
-    static DaemonStorage contextData;
+    static DaemonStorage storage;
     static String multicast = "239.0.0.5";
+    static String fileStore = "C://tmp/sphinx";
     static int port = 12345;
     static String data;
 
@@ -41,9 +45,9 @@ public class ContextDaemon {
         Logger logger = LoggerFactory.getLogger(DaemonStorageProcess.class);
 
         public void run() {
-            logger.info("Context DaemonStorageProcess start");
+            logger.info("Persistence DaemonStorageProcess start");
 
-            contextData = new DaemonStorageImpl();
+            storage = new DaemonStorageImpl();
 
             InetAddress group = null;
             MulticastSocket socket = null;
@@ -109,7 +113,7 @@ public class ContextDaemon {
 
                     if (type.contentEquals("GET")
                             && value.contentEquals("LIST")){
-                        Collection<String> allData = contextData.getAll();
+                        Collection<String> allData = storage.getAll();
 
                         Iterator<String> iterator = allData.iterator();
                         while(iterator.hasNext()){
@@ -157,10 +161,10 @@ public class ContextDaemon {
                 if (dataType.contentEquals(Types.MSG_TYPE_CONTEXT) && dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
                     String key = dataName + dataKey;
                     logger.info("store context data with key=" + key);
-                    contextData.put(key, data);
+                    storage.put(key, data);
                 }
 
-                logger.info("number of context items: " + contextData.getList().size());
+                logger.info("number of context items: " + storage.getList().size());
 
             }
         }

@@ -263,10 +263,8 @@ public class DataMonitor extends JFrame {
         t.start();
     }
 
-    public DataMonitor(String ip) {
-        final JTextField textField  = new JTextField();
+    public DataMonitor() {
         setLayout(new BorderLayout());
-        multicast = ip;
 
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
@@ -297,9 +295,6 @@ public class DataMonitor extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                String multicast = "239.0.0.5";
-                int port = 12345;
-
                 String message = "<command type=\"GET\" value=\"LIST\" dest=\""
                         + multicast+"\" port=\"" + port + "\" />";
 

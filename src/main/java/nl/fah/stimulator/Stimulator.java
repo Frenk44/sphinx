@@ -4,6 +4,7 @@ package nl.fah.stimulator;
  * Created by Haulussy on 27-10-2014.
  */
 
+import nl.fah.common.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.CharacterData;
@@ -142,28 +143,18 @@ public class Stimulator extends JFrame {
         }
 
         dataKey = new JTextField(6);
-        dataType = new JComboBox(new String[]{"EVENT","CONTEXT","PERSISTENT"}){
-            // event-> on select make textBox only invalid if datatype=EVENT
-            public void actionPerformed(ActionEvent e) {
-                JComboBox cb = (JComboBox)e.getSource();
-                String dataTypeName = (String)cb.getSelectedItem();
-                logger.debug("dataTYpe=" + dataTypeName);
-/*               if (dataTypeName.contentEquals("EVENT")) {
-                   dataKey.setText("");
-                   dataKey.setEditable(false);
-               }
-                else dataKey.setEditable(true);*/
-            }
-        };
+        dataKey.setText("");
+        dataKey.setEditable(false);
+        dataType = new JComboBox(new String[]{Types.MSG_TYPE_EVENT,Types.MSG_TYPE_CONTEXT,Types.MSG_TYPE_PERSISTENT});
         dataType.addActionListener(
                 new ActionListener() {
 
                     public void actionPerformed(ActionEvent e) {
-                        JComboBox dataType = (JComboBox) e.getSource();
-                        String dataTypeString = (String) dataType.getSelectedItem();
+                        JComboBox cb = (JComboBox) e.getSource();
+                        String dataTypeString = (String) cb.getSelectedItem();
                         logger.debug("dataType:" + dataTypeString);
 
-                        if (dataTypeString.contentEquals("EVENT")){
+                        if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
                             dataKey.setText("");
                             dataKey.setEditable(false);
                         }
@@ -186,7 +177,6 @@ public class Stimulator extends JFrame {
                 String cmbType = (String) jcmbType.getSelectedItem();
                 logger.debug("cmbType:" + cmbType);
                 dataName = cmbType;
-
 
                 String fname = "/templates/model1/" + cmbType + ".xml";
                 InputStream is = Stimulator.class.getResourceAsStream(fname);

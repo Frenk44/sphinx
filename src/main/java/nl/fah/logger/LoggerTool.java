@@ -1,5 +1,6 @@
 package nl.fah.logger;
 
+import nl.fah.common.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -17,15 +18,13 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.UnknownHostException;
+import java.net.*;
 
 /**
  * Created by Haulussy on 5-11-2014.
  *
  *  * TODO: make nice interface with record, pause, stop buttons and info panel
+ *  * TODO: make multicast address configurable in the interface
  */
 public class LoggerTool extends JFrame {
 
@@ -69,6 +68,8 @@ public class LoggerTool extends JFrame {
 
             InetAddress group = null;
             MulticastSocket socket = null;
+
+            boolean TimeOut = false;
             try {
                 socket = new MulticastSocket(port);
                 group = InetAddress.getByName(multicast);
@@ -108,80 +109,84 @@ public class LoggerTool extends JFrame {
                 loggingPrev = logging;
 
                 while (logging) {
-                    logger.debug("Logger Daemon update");
-
                     dataKey = null;
 
                     byte[] buf = new byte[10 * 1024];
                     packet = new DatagramPacket(buf, buf.length);
-                    try {
+
+                   try {
+                        TimeOut = false;
+                        socket.setSoTimeout(10);
                         socket.receive(packet);
+                    } catch (SocketTimeoutException e) {
+                        TimeOut = true;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
-                    String received = new String(packet.getData());
-                    logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
+                    if (!TimeOut) {
+                        String received = new String(packet.getData());
+                        logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
 
-                    data = received.trim();
-                    // data can be xml-data or command
+                        data = received.trim();
+                        // data can be xml-data or command
 
-                    // do some XML parsing
-                    DocumentBuilderFactory dbf =
-                            DocumentBuilderFactory.newInstance();
-                    DocumentBuilder db = null;
-                    Document doc = null;
-                    InputSource is = new InputSource();
-                    is.setCharacterStream(new StringReader(data));
+                        // do some XML parsing
+                        DocumentBuilderFactory dbf =
+                                DocumentBuilderFactory.newInstance();
+                        DocumentBuilder db = null;
+                        Document doc = null;
+                        InputSource is = new InputSource();
+                        is.setCharacterStream(new StringReader(data));
 
-                    try {
-                        db = dbf.newDocumentBuilder();
-                        doc = db.parse(is);
-                    } catch (ParserConfigurationException e) {
-                        e.printStackTrace();
-                    } catch (SAXException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                        try {
+                            db = dbf.newDocumentBuilder();
+                            doc = db.parse(is);
+                        } catch (ParserConfigurationException e) {
+                            e.printStackTrace();
+                        } catch (SAXException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
 
+                        NodeList nodes = doc.getElementsByTagName("data");
+                        if (nodes != null && (nodes.getLength() == 1)) {
+                            dataNrOfItems = 0;
+                            for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                                if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                                    dataNrOfItems = nodes.item(0).getChildNodes().item(j).getChildNodes().getLength();
+                                }
+                                if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
-                    NodeList nodes = doc.getElementsByTagName("data");
-                    if (nodes != null && (nodes.getLength() == 1)) {
-                        dataNrOfItems = 0;
-                        for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
-                            if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
-                                dataNrOfItems = nodes.item(0).getChildNodes().item(j).getChildNodes().getLength();
-                            }
-                            if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+                                    for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                                        Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
+                                        if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
-                                for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                                    Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
-                                    if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
-
-                                        if (nnn.getNodeName().contentEquals("name")) {
-                                            dataName = nnn.getTextContent();
-                                        } else if (nnn.getNodeName().contentEquals("id")) {
-                                            dataId = nnn.getTextContent();
-                                        } else if (nnn.getNodeName().contentEquals("key")) {
-                                            dataKey = nnn.getTextContent();
-                                        } else if (nnn.getNodeName().contentEquals("type")) {
-                                            dataType = nnn.getTextContent();
+                                            if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
+                                                dataName = nnn.getTextContent();
+                                            } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
+                                                dataId = nnn.getTextContent();
+                                            } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
+                                                dataKey = nnn.getTextContent();
+                                            } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
+                                                dataType = nnn.getTextContent();
+                                            }
                                         }
                                     }
                                 }
                             }
+                        } else {
+                            logger.debug("nodes==null or empty");
                         }
-                    } else {
-                        logger.debug("nodes==null or empty");
+
+                        dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data, dataNrOfItems);
+
+                        logger.debug("LOG: nr. of items: " + dataLogger.getSize());
+                        logInfoLabel.setText("LOG: nr. of items: " + dataLogger.getSize());
+
+                        logger.debug(dataLogger.dumpLog());
                     }
-
-                    dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data, dataNrOfItems);
-
-                    logger.debug("LOG: nr. of items: " + dataLogger.getSize());
-                    logInfoLabel.setText("LOG: nr. of items: " + dataLogger.getSize());
-
-                    logger.debug(dataLogger.dumpLog());
                 }
 
                 try {
@@ -191,11 +196,7 @@ public class LoggerTool extends JFrame {
                 }
 
             }
-
-
         }
-
-
     }
 
 
@@ -227,6 +228,7 @@ public class LoggerTool extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 dataLogger.clear();
                 infoLabel.setText("logging cleared");
+                logInfoLabel.setText("LOG: nr. of items: 0");
             }
         });
 

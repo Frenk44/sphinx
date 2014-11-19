@@ -25,7 +25,7 @@ public class MonitorTool extends JFrame {
     JScrollPane scrollPane;
 
     private static void createAndShowGUI() {
-        DataMonitor ra = new DataMonitor("239.0.0.5");
+        DataMonitor ra = new DataMonitor();
         ra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         ra.setSize(400, 300);
         ra.setVisible(true);
