@@ -13,8 +13,8 @@ import java.io.*;
 import java.net.*;
 
 public class UdpProcess1 {
-    static String multicast = "239.0.0.5";
-    static int port = 12345;
+    static String multicast = "239.0.0.1";
+    static int port = 6001;
 
     private static class WriteProcess implements Runnable {
 
@@ -46,8 +46,6 @@ public class UdpProcess1 {
                             "<data>\n" +
                             "    <header>\n" +
                             "        <name>persoonsgegevens</name>\n" +
-                            "        <id>" +(count++) + "</id>\n" +
-                            "        <size>" + 8 + "</size>\n" +
                             "        <type>PERIODIC</type>\n" +
                             "    </header>\n" +
                             "    <payload>\n" +
@@ -74,7 +72,7 @@ public class UdpProcess1 {
 
 
                     System.out.println("data send");
-                    Thread.sleep(1000);
+                    Thread.sleep(4000);
                 } catch (InterruptedException e) { e.printStackTrace();}
             }
         }

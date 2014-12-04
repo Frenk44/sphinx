@@ -1,5 +1,8 @@
 package nl.fah.persistence;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,6 +16,7 @@ import java.util.Set;
 public class DaemonStorageImpl implements DaemonStorage {
     String FileLocation;
     HashMap<String, String> xmlHashMap;
+    Logger logger = LoggerFactory.getLogger(DaemonStorageImpl.class);
 
     boolean save() {
         FileOutputStream fs = null;
@@ -36,10 +40,15 @@ public class DaemonStorageImpl implements DaemonStorage {
 
     public boolean load() {
         FileInputStream is = null;
+        File f = null;
         try {
-            is = new FileInputStream(new File(FileLocation));
+            f = new File(FileLocation);
+            is = new FileInputStream(f);
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            logger.info(e.getMessage() + ", creating new persistence file:" + f.getAbsolutePath());
+            save();
+            xmlHashMap = new HashMap<String, String>();
+            return false;
         }
         ObjectInputStream ois = null;
         try {
@@ -61,8 +70,7 @@ public class DaemonStorageImpl implements DaemonStorage {
     @Override
     public boolean SetFileLocation(String location) {
         FileLocation = location;
-        File file = new File(FileLocation);
-        return file.exists();
+        return true;
     }
 
     public void clear() { xmlHashMap.clear(); }
@@ -74,5 +82,7 @@ public class DaemonStorageImpl implements DaemonStorage {
         save();
     }
 
-    public Collection<String> getAll() { return xmlHashMap.values(); }
+    public Collection<String> getAll() {
+        return xmlHashMap.values();
+    }
 }

@@ -5,6 +5,7 @@ package nl.fah.monitor.message;
  */
 
 import nl.fah.common.Types;
+import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -95,10 +96,11 @@ public class MessageMonitor extends JFrame {
                     logger.debug("RESET");
                     while(true){
                         if (!pause){
-                            logger.info("START LOGGING");
 
                             multicast = ipTextField.getText();
                             port = Integer.parseInt( portTextField.getText() );
+                            logger.info("START MONITORING ON " + multicast + ":" + port);
+
                             try {
                                 socket = new MulticastSocket(port);
                                 group = InetAddress.getByName(multicast);
@@ -160,117 +162,129 @@ public class MessageMonitor extends JFrame {
             if (!TimeOut) {
                 String received = new String(packet.getData());
                 logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
+                UpdateTable(received);
 
-                // do some XML parsing
-                DocumentBuilderFactory dbf =
-                        DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = null;
-                Document doc = null;
-                InputSource is = new InputSource();
-                is.setCharacterStream(new StringReader(received.trim()));
 
-                try {
-                    db = dbf.newDocumentBuilder();
-                    doc = db.parse(is);
-                } catch (ParserConfigurationException e) {
-                    e.printStackTrace();
-                } catch (SAXException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                // TODO: check xml validity,using the VALIDATOR
+            }
+            // TODO : auto scroll down
+        }
 
-                NodeList nodes = doc.getElementsByTagName("data");
+        private void UpdateTable(String received) {
+            // do some XML parsing
+            DocumentBuilderFactory dbf =
+                    DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = null;
+            Document doc = null;
+            InputSource is = new InputSource();
+            is.setCharacterStream(new StringReader(received.trim()));
 
-                if (nodes != null && (nodes.getLength() == 1)) {
+            StringBuilder m = new StringBuilder();
+            Validator.ValidateSource(received.trim(), "src/main/resources/data.xsd", m);
+            logger.info(m.toString());
 
-                    tableData.clearData();
-                    for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
-                        if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+            try {
+                db = dbf.newDocumentBuilder();
+                doc = db.parse(is);
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (SAXException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-                            for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                                Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
-                                if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
-                                    if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
-                                        dataName = nnn.getTextContent();
 
-                                        Vector v = new Vector();
-                                        v.add(new String("MESSAGE"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataName));
-                                        tableData.addText(v);
+            NodeList nodes = doc.getElementsByTagName("data");
 
-                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
-                                        dataId = nnn.getTextContent();
-                                        Vector v = new Vector();
-                                        v.add(new String("ID"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataId));
-                                        tableData.addText(v);
-                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
-                                        dataKey = nnn.getTextContent();
-                                    } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
-                                        dataType = nnn.getTextContent();
-                                        Vector v = new Vector();
-                                        v.add(new String("TYPE"));
-                                        v.add(new String("TEXT"));
-                                        v.add(new String(dataType));
-                                        tableData.addText(v);
-                                    }
-                                }
-                            }
-                        } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
-                            Node payload = nodes.item(0).getChildNodes().item(j);
+            if (nodes != null && (nodes.getLength() == 1)) {
 
-                            Date date = new Date();
-                            long time = date.getTime();
-                            //Passed the milliseconds to constructor of Timestamp class
-                            Timestamp ts = new Timestamp(time);
+                tableData.clearData();
+                for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                    if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
-                            logger.debug(ts.toString());
+                        for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                            Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
+                            if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
-                            Vector v2 = new Vector();
-                            v2.add(new String("TIME"));
-                            v2.add(new String("TEXT"));
-                            v2.add(new String(ts.toString()));
-                            tableData.addText(v2);
-
-                            if (dataKey != null && !dataKey.isEmpty()) {
-                                Vector v3 = new Vector();
-                                v3.add(new String("KEY"));
-                                v3.add(new String("TEXT"));
-                                v3.add(new String(dataKey));
-                                tableData.addText(v3);
-                            }
-
-                            logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
-                            for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                                if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
-                                    NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
-
-                                    logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
-                                            "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
-                                            "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                                if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
+                                    dataName = nnn.getTextContent();
 
                                     Vector v = new Vector();
-                                    v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
-                                    v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                                    v.add(new String("MESSAGE"));
+                                    v.add(new String("TEXT"));
+                                    v.add(new String(dataName));
                                     tableData.addText(v);
 
-                                    if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
-                                        logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                                } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
+                                    dataId = nnn.getTextContent();
+                                    Vector v = new Vector();
+                                    v.add(new String("ID"));
+                                    v.add(new String("TEXT"));
+                                    v.add(new String(dataId));
+                                    tableData.addText(v);
+                                } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
+                                    dataKey = nnn.getTextContent();
+                                } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
+                                    dataType = nnn.getTextContent();
+                                    Vector v = new Vector();
+                                    v.add(new String("TYPE"));
+                                    v.add(new String("TEXT"));
+                                    v.add(new String(dataType));
+                                    tableData.addText(v);
                                 }
                             }
                         }
+                    } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                        Node payload = nodes.item(0).getChildNodes().item(j);
+
+                        Date date = new Date();
+                        long time = date.getTime();
+                        //Passed the milliseconds to constructor of Timestamp class
+                        Timestamp ts = new Timestamp(time);
+
+                        logger.debug(ts.toString());
+
+                        Vector v2 = new Vector();
+                        v2.add(new String("TIME"));
+                        v2.add(new String("TEXT"));
+                        v2.add(new String(ts.toString()));
+                        tableData.addText(v2);
+
+                        if (dataKey != null && !dataKey.isEmpty()) {
+                            Vector v3 = new Vector();
+                            v3.add(new String("KEY"));
+                            v3.add(new String("TEXT"));
+                            v3.add(new String(dataKey));
+                            tableData.addText(v3);
+                        }
+
+                        logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                        for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                            if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
+                                NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+
+                                logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                        "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                        "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+
+                                Vector v = new Vector();
+                                v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
+                                v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
+                                v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                                tableData.addText(v);
+
+                                if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
+                                    logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                            }
+                        }
                     }
-                } else {
-                    logger.info("nodes==null or empty");
                 }
+            } else {
+                logger.info("nodes==null or empty");
             }
-            // TODO : auto scroll down
+
+
         }
     }
 

@@ -5,6 +5,7 @@ package nl.fah.stimulator;
  */
 
 import nl.fah.common.Types;
+import nl.fah.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.CharacterData;
@@ -20,12 +21,12 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.*;
 
 public class Stimulator extends JFrame {
     JComboBox dataList;
@@ -33,6 +34,12 @@ public class Stimulator extends JFrame {
     JTextField dataKey;
     JTextField ipTextField;
     JTextField portTextField;
+
+
+    final JInternalFrame jif1 = new JInternalFrame("Frame 1")
+    {
+    };
+
 
     String modelPath = "/templates/model1";
     String dataName = "";
@@ -84,38 +91,36 @@ public class Stimulator extends JFrame {
     }
 
 
-    // convert InputStream to String
-    private String getStringFromInputStream(InputStream iss) {
-
-        BufferedReader br = null;
-        StringBuilder sb = new StringBuilder();
-
-        String line;
-        try {
-
-            br = new BufferedReader(new InputStreamReader(iss));
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return sb.toString();
-
-    }
 
 
     public void init(){
+
+        Properties prop = new Properties();
+        InputStream is = Stimulator.class.getResourceAsStream("/sphinx.properties");
+
+        try {
+            if(is != null && is.available()>0) {
+                prop.load(is);
+                multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
+                logger.info("multicast=" + multicast);
+                port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
+                logger.info("port=" + port);
+            }
+            else{
+                logger.info("empty file or not existing: " + "/resources/sphinx.properties");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            prop.load(is);
+            logger.info("sphinx.context.daemon.ip=" + prop.getProperty("sphinx.context.daemon.ip"));
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+
+
         URL location = this.getClass().getResource( modelPath);
         String FullPath = location.getPath();
         logger.debug("scanning directory:" + FullPath);
@@ -183,8 +188,7 @@ public class Stimulator extends JFrame {
                 logger.debug("reading: " + fname);
                 dataName = cmbType;
 
-                String xml = getStringFromInputStream(is);
-
+                String xml = Utils.getStringFromInputStream(is);
                 logger.debug(xml);
 
                 DocumentBuilderFactory dbf =
@@ -249,7 +253,11 @@ public class Stimulator extends JFrame {
                         tableData.addText(v);
                         j++;
                     }
+                    tableData.fireTableDataChanged();
+
+                    jif1.updateUI();
                 }
+
             }
         });
 
@@ -294,8 +302,6 @@ public class Stimulator extends JFrame {
                         "<data>\n" +
                         "    <header>\n" +
                         "        <name>"+   dataName + "</name>\n" +
-                        "        <id>" + dataId + "</id>\n" +
-                        "        <size>" + dataSize + "</size>\n" +
                         "        <type>" + dataType.getSelectedItem() + "</type>\n";
                 if (!sel.contentEquals("EVENT")) msg += "        <key>" + dataKey.getText() + "</key>\n";
                 msg += "    </header>\n";
@@ -312,7 +318,7 @@ public class Stimulator extends JFrame {
                 msg += payload;
                 msg += "</data>\n";
 
-                logger.info(msg);
+                logger.info("MESSAGE=" + msg);
 
                 multicast = ipTextField.getText();
                 logger.debug("multicast=" + multicast);
@@ -335,11 +341,15 @@ public class Stimulator extends JFrame {
         DestPanel.add(sendButton);
 
 
-        add(ControlPanel, BorderLayout.NORTH);
-        add(DestPanel);
+        jif1.add(ControlPanel, BorderLayout.NORTH);
+        jif1.add(DestPanel);
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
-        add(DestPanel, BorderLayout.SOUTH);
+        jif1.add(new JScrollPane(table), BorderLayout.CENTER);
+        jif1.add(DestPanel, BorderLayout.SOUTH);
+
+        add(jif1);
+        jif1.show();
+
     }
 
     final StimulatorModel tableData = new StimulatorModel();

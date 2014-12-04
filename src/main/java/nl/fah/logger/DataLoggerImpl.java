@@ -69,6 +69,11 @@ public class DataLoggerImpl implements DataLogger {
         dataLog.clear();
     }
 
+    @Override
+    public String getPayLoad(String key, String dataName) {
+        return null;
+    }
+
 
     @Override
     public void log(String sender, String key, String dataName, String dataType, String dataPayload, int nrOfItems){

@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -20,6 +21,7 @@ import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Properties;
 
 /**
  * Created by Haulussy on 5-11-2014.
@@ -39,6 +41,30 @@ public class ContextDaemon {
         String dataType;
 
         Logger logger = LoggerFactory.getLogger(DaemonStorageProcess.class);
+
+        public DaemonStorageProcess(){
+            super();
+
+            String fname = "/sphinx.properties";
+            InputStream is = DaemonStorageProcess.class.getResourceAsStream(fname);
+            Properties prop = new Properties();
+            logger.info("reading: " + fname);
+            try {
+                if(is != null && is.available()>0) {
+                    prop.load(is);
+                    multicast = prop.getProperty(Types.CONFIG_CONTEXT_DAEMON_IP);
+                    logger.info("multicast=" + multicast);
+                    port = Integer.parseInt(prop.getProperty(Types.CONFIG_CONTEXT_DAEMON_PORT));
+                    logger.info("port=" + port);
+                }
+                else{
+                    logger.info("empty file or not existing: " + fname);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
 
         public void run() {
             logger.info("Context DaemonStorageProcess start");
@@ -154,7 +180,7 @@ public class ContextDaemon {
                     logger.info("nodes==null or empty");
                 }
 
-                if (dataType.contentEquals(Types.MSG_TYPE_CONTEXT) && dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
+                if (dataType != null && dataType.contentEquals(Types.MSG_TYPE_CONTEXT) && dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
                     String key = dataName + dataKey;
                     logger.info("store context data with key=" + key);
                     contextData.put(key, data);

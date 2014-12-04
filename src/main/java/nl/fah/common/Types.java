@@ -16,4 +16,10 @@ public class Types {
     public static final String DATA_RANGE = "range";
     public static final String DATA_ITEM = "item";
 
+    public static final String CONFIG_CONTEXT_DAEMON_IP = "sphinx.context.daemon.ip";
+    public static final String CONFIG_CONTEXT_DAEMON_PORT = "sphinx.context.daemon.port";
+    public static final String CONFIG_PERSISTENCE_DAEMON_IP = "sphinx.persistence.daemon.ip";
+    public static final String CONFIG_PERSISTENCE_DAEMON_PORT = "sphinx.persistence.daemon.port";
+    public static final String CONFIG_PERSISTENCE_DAEMON_FILESTORE = "sphinx.persistence.daemon.filestore";
+
 }

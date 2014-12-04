@@ -1,27 +1,17 @@
-package nl.fah.monitor.message;
+package nl.fah.monitor.data;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.Vector;
 
 public class MessageModel extends AbstractTableModel {
 
-    String[] columnNames = {"name",
+    String[] columnNames = {"received",
+            "name",
             "type",
-            "value"};
+            "key"};
 
     protected Vector listData = new Vector();
 
-    public boolean isCellEditable(int row, int col)
-    {
-        if (row==1 || row > 2 ) return true;
-        else return false;
-    }
-
-    public void setValueAt(Object value, int row, int col) {
-        Vector v = (Vector)(listData.elementAt(row));
-        v.set(2, value);
-        fireTableCellUpdated(row, col);
-    }
 
     public void addText(Vector data) {
         listData.addElement(new Vector(data));
@@ -33,8 +23,11 @@ public class MessageModel extends AbstractTableModel {
         return columnNames[index];
     }
 
+    @Override
     public int getRowCount() { return listData.size(); }
-    public int getColumnCount() { return columnNames.length; }
+
+    @Override
+    public int getColumnCount() { return 4; }
     public Object getValueAt(int row, int column){ return ((Vector)(listData.elementAt(row))).elementAt(column); }
 
     public void clearData(){

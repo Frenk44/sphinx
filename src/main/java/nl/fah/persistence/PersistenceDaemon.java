@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -20,6 +21,7 @@ import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Properties;
 
 /**
  * Created by Haulussy on 19-11-2014.
@@ -34,6 +36,9 @@ public class PersistenceDaemon {
     static String fileStore = "C://tmp/sphinx";
     static int port = 12345;
     static String data;
+    static String propFile = "/sphinx.properties";
+
+    Logger logger = LoggerFactory.getLogger(PersistenceDaemon.class);
 
     private static class DaemonStorageProcess implements Runnable {
         DatagramPacket packet;
@@ -42,12 +47,34 @@ public class PersistenceDaemon {
         String dataName;
         String dataType;
 
-        Logger logger = LoggerFactory.getLogger(DaemonStorageProcess.class);
+        Logger logger = LoggerFactory.getLogger(PersistenceDaemon.class);
 
         public void run() {
             logger.info("Persistence DaemonStorageProcess start");
 
+            InputStream is = DaemonStorageProcess.class.getResourceAsStream(propFile);
+            Properties prop = new Properties();
+            logger.info("reading: " + propFile);
+            try {
+                if(is != null && is.available()>0) {
+                    prop.load(is);
+                    multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
+                    logger.info("multicast=" + multicast);
+                    port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
+                    logger.info("port=" + port);
+                    fileStore = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_FILESTORE);
+                    logger.info("fileStore=" + fileStore);
+                }
+                else{
+                    logger.info("empty file or not existing: " + propFile);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             storage = new DaemonStorageImpl();
+            storage.SetFileLocation(fileStore);
+            storage.load();
 
             InetAddress group = null;
             MulticastSocket socket = null;
@@ -67,7 +94,7 @@ public class PersistenceDaemon {
             }
 
             while (true){
-                logger.info("Context Daemon update");
+                logger.info("Persistence Daemon update");
 
                 dataKey = null;
 
@@ -91,12 +118,12 @@ public class PersistenceDaemon {
                         DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = null;
                 Document doc = null;
-                InputSource is = new InputSource();
-                is.setCharacterStream(new StringReader(data));
+                InputSource iss = new InputSource();
+                iss.setCharacterStream(new StringReader(data));
 
                 try {
                     db = dbf.newDocumentBuilder();
-                    doc = db.parse(is);
+                    doc = db.parse(iss);
                 } catch (ParserConfigurationException e) {
                     e.printStackTrace();
                 } catch (SAXException e) {
@@ -158,13 +185,14 @@ public class PersistenceDaemon {
                     logger.info("nodes==null or empty");
                 }
 
-                if (dataType.contentEquals(Types.MSG_TYPE_CONTEXT) && dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
+                if (dataType != null && dataType.contentEquals(Types.MSG_TYPE_PERSISTENT) && dataKey != null && !dataKey.isEmpty() && dataKey.length()>0) {
                     String key = dataName + dataKey;
-                    logger.info("store context data with key=" + key);
+                    logger.info("store persistent data with key=" + key);
+                    logger.info("store persistent data with data=" + data);
                     storage.put(key, data);
                 }
 
-                logger.info("number of context items: " + storage.getList().size());
+                logger.info("number of persistent items: " + storage.getList().size());
 
             }
         }

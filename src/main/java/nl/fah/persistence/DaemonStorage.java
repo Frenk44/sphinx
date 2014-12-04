@@ -33,4 +33,6 @@ public interface DaemonStorage {
     public void clear();
 
     public Collection<String> getAll();
+
+    boolean load();
 }

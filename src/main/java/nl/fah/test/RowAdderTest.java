@@ -1,6 +1,6 @@
 package nl.fah.test;
 
-import nl.fah.monitor.data.SimpleModel;
+import nl.fah.monitor.data.MessageModel;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -12,7 +12,7 @@ import java.util.Vector;
  */
 public class RowAdderTest extends JFrame {
 
-    final static SimpleModel tableData = new SimpleModel();
+    final static MessageModel tableData = new MessageModel();
     static JTable table = new JTable(tableData);
     static JTextField textField;
 

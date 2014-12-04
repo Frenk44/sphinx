@@ -45,8 +45,6 @@ public class UdpProcess2 {
                             "<data>\n" +
                             "    <header>\n" +
                             "        <name>adresgegevens</name>\n" +
-                            "        <id>" +(count++) + "</id>\n" +
-                            "        <size>" + 6 + "</size>\n" +
                             "        <type>PERIODIC</type>\n" +
                             "    </header>\n" +
                             "    <payload>\n" +

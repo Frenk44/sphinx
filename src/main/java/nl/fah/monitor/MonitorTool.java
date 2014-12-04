@@ -1,4 +1,4 @@
-package nl.fah.monitor.data;
+package nl.fah.monitor;
 
 /**
  * Created by Haulussy on 27-10-2014.
@@ -7,23 +7,21 @@ package nl.fah.monitor.data;
 import javax.swing.*;
 
 public class MonitorTool extends JFrame {
-
     private static void createAndShowGUI() {
-        DataMonitor ra = new DataMonitor();
-        ra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        ra.setSize(400, 300);
-        ra.setVisible(true);
-        ra.start();
-        ra.setTitle("Monitor Tool");
+        Monitor monitor = new Monitor();
+        monitor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        monitor.setSize(478,600);
+        monitor.setVisible(true);
+        monitor.start();
+        monitor.setTitle("SPHINX Tool");
     }
 
     public static void main(String[] args) {
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 createAndShowGUI();
             }
         });
     }
+
 }

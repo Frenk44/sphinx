@@ -11,4 +11,5 @@ public interface DataLogger {
     public boolean saveLog(String name);
     public boolean isEmpty();
     public void clear();
+    public String getPayLoad(String key, String dataName);
 }

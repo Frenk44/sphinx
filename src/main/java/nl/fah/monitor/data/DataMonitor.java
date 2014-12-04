@@ -30,7 +30,7 @@ import java.util.Vector;
 
 public class DataMonitor extends JFrame {
 
-    final SimpleModel tableData = new SimpleModel();
+    final MessageModel tableData = new MessageModel();
     JTable table = new JTable(tableData);
     Label infoLabel;
     JTextField ipTextField;
@@ -92,10 +92,10 @@ public class DataMonitor extends JFrame {
                 try {
                     while(true){
                         if (!pause){
-                            logger.info("START LOGGING");
 
                             multicast = ipTextField.getText();
                             port = Integer.parseInt( portTextField.getText() );
+                            logger.info("START MONITORING ON " + multicast + ":" + port);
                             try {
                                 socket = new MulticastSocket(port);
                                 group = InetAddress.getByName(multicast);
@@ -285,7 +285,7 @@ public class DataMonitor extends JFrame {
         JButton clearButton = new JButton(new AbstractAction("clear") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                SimpleModel dm = (SimpleModel)table.getModel();
+                MessageModel dm = (MessageModel)table.getModel();
                 dm.clearData();
             }
         });
