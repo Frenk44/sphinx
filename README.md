@@ -1,7 +1,7 @@
-sphinx
+SPHINX
 ======
-
-Run-time infrastructure for distribution, monitoring, stimulating XML data over UDP broadcast networks.<br>
+Sphinx stands for Server Paradigm for Hosting Interconnecting Nodes using XML.
+It is a run-time infrastructure for the distribution, monitoring and stimulating of XML data over UDP broadcast networks.<br>
 <br>
 An UDP broadcast network enables the developer to use multiple interacting programs to interact during execution time. This approach has the advantage to develop separate smaller interacting programs to achieve a high complexity rather than one big program. Smaller programs are easier to maintain than one large complex program.<br>
 <br>
