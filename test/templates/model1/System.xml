@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>System</name>
+    </header>
+    <payload>
+        <item name='id' type='number' />
+        <item name='name' type='text' />
+    </payload>
+</data>

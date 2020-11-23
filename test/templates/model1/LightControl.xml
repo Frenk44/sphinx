@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>LightControl</name>
+    </header>
+    <payload>
+        <item name='id' type='number' />
+	<item name='system_id' type='number' />
+        <item name='command' type='enum' range='off,on,dc' />
+	<item name='dutycycle' type='number' />
+    </payload>
+</data>
