@@ -8,10 +8,10 @@ An UDP multicast network enables the developer to use multiple interacting progr
 To build:
 <li>
   <ul> install jdk</ul>
-<ul> install maven</ul>
-<ul> install git</ul>
-<ul> git clone https://github.com/Frenk44/sphinx.git</ul>
-<ul> mvn clean install</ul>
+  <ul> install maven</ul>
+  <ul> install git</ul>
+  <ul> git clone https://github.com/Frenk44/sphinx.git</ul>
+  <ul> mvn clean install</ul>
 </li>
 To execute:
 <br> go to the test directory and copy the generated jar from the target directory: copy ..\target\*.jar .
