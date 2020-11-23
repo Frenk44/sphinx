@@ -16,6 +16,7 @@ To build:
 <br> 
 To execute:
 <li> go to the test directory and copy the generated jar from the target directory:<b> copy ..\target\*.jar . </b></li>
+<li> to add new messages, go to the templates\model1 directory and create your own message by modifying an existing one create a new one</li>
 <li> execute: <b>java -jar monitor-1.0-SNAPSHOT-jar-with-dependencies.jar</b></li>
 
 
