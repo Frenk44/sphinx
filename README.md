@@ -13,8 +13,9 @@ To build:
   <li> git clone https://github.com/Frenk44/sphinx.git</li>
   <li> mvn clean install</li>
 
+<br> 
 To execute:
-<br> go to the test directory and copy the generated jar from the target directory: copy ..\target\*.jar .
-<br> execute: java -jar monitor-1.0-SNAPSHO-jar-with-dependencies.jar
+<li> go to the test directory and copy the generated jar from the target directory: copy ..\target\*.jar .</li>
+<li> execute: java -jar monitor-1.0-SNAPSHO-jar-with-dependencies.jar</li>
 
 
