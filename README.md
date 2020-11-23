@@ -16,6 +16,6 @@ To build:
 <br> 
 To execute:
 <li> go to the test directory and copy the generated jar from the target directory: copy ..\target\*.jar .</li>
-<li> execute: java -jar monitor-1.0-SNAPSHOT-jar-with-dependencies.jar</li>
+<li> execute: <b>java -jar monitor-1.0-SNAPSHOT-jar-with-dependencies.jar</b></li>
 
 
