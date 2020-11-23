@@ -24,8 +24,6 @@ import java.util.Iterator;
 import java.util.Properties;
 
 /**
- * Created by Haulussy on 19-11-2014.
- *
  * The persistence daemon operates like the context daemon,
  *  however xml-data is stored on disk (REST db)
  */

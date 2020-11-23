@@ -10,7 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by Haulussy on 16-11-2014.
+ *
+ *
  *
  */
 public class DataLoggerImpl implements DataLogger {
@@ -70,7 +71,14 @@ public class DataLoggerImpl implements DataLogger {
     }
 
     @Override
-    public String getPayLoad(String key, String dataName) {
+    public String getPayLoad(String key) {
+        for(int i=0;i<dataLog.size();i++)
+        {
+            if(dataLog.get(i).key.equals(key))
+            {
+                return dataLog.get(i).dataPayload;
+            }
+        }
         return null;
     }
 

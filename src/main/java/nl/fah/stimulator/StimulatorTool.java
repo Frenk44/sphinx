@@ -1,8 +1,6 @@
 package nl.fah.stimulator;
 
 /**
- * Created by Haulussy on 27-10-2014
- *
  * creeert voor alle xml files in de resources/data directory
  * een data object die de gebruiker kan selecteren en invullen
  * om een UDP xml bericht te versturen.

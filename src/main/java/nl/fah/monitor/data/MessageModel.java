@@ -28,7 +28,10 @@ public class MessageModel extends AbstractTableModel {
 
     @Override
     public int getColumnCount() { return 4; }
-    public Object getValueAt(int row, int column){ return ((Vector)(listData.elementAt(row))).elementAt(column); }
+
+    public Object getValueAt(int row, int column){
+        return ((Vector)(listData.elementAt(row))).elementAt(column);
+    }
 
     public void clearData(){
         listData.clear();

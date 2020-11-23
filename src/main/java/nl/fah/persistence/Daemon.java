@@ -1,11 +1,5 @@
 package nl.fah.persistence;
 
-/**
- * Created by Haulussy on 23-10-2014.
- */
-
-
-
 import nl.fah.context.DaemonStorage;
 import nl.fah.context.DaemonStorageImpl;
 

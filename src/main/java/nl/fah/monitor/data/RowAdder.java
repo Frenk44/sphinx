@@ -1,9 +1,5 @@
 package nl.fah.monitor.data;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;

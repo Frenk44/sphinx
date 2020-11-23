@@ -10,9 +10,6 @@ import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Created by Haulussy on 14-11-2014.
- */
 public class Validator {
 
     public static boolean Validate(String xmlFile, String xsdFile, StringBuilder message){

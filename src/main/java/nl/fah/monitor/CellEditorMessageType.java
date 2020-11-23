@@ -7,9 +7,6 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableModel;
 import java.awt.*;
 
-/**
- * Created by Haulussy on 4-12-2014.
- */
 public class CellEditorMessageType extends AbstractCellEditor implements TableCellEditor
 {
     private JComboBox editor;

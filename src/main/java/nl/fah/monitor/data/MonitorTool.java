@@ -1,8 +1,7 @@
 package nl.fah.monitor.data;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
+import nl.fah.monitor.message.MessageModel;
+import nl.fah.monitor.message.MessageMonitor;
 
 import javax.swing.*;
 
@@ -10,11 +9,12 @@ public class MonitorTool extends JFrame {
 
     private static void createAndShowGUI() {
         DataMonitor ra = new DataMonitor();
+
         ra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        ra.setSize(400, 300);
+        ra.setSize(480, 672);
         ra.setVisible(true);
         ra.start();
-        ra.setTitle("Monitor Tool");
+        ra.setTitle("Sphinx Tool 2019");
     }
 
     public static void main(String[] args) {

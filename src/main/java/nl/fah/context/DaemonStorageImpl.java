@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Set;
 
 /**
- * Created by Haulussy on 4-11-2014.
- *
  * The context daemon continuously listens to an UDP port
  * and stores all context data.
  *

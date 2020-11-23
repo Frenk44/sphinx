@@ -2,9 +2,6 @@ package nl.fah.test;
 
 import nl.fah.stimulator.Validator;
 
-/**
- * Created by Haulussy on 15-11-2014.
- */
 public class testValidator {
 
     public static void main(String[] args) throws Exception {

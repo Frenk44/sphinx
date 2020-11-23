@@ -1,9 +1,5 @@
 package nl.fah.monitor;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import nl.fah.common.Types;
 import nl.fah.common.Utils;
 import nl.fah.logger.DataLogger;
@@ -21,8 +17,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import javax.swing.event.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.xml.parsers.DocumentBuilder;
@@ -38,11 +33,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.net.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.io.FileInputStream;
 
 public class Monitor extends JFrame {
 
@@ -50,20 +48,11 @@ public class Monitor extends JFrame {
     final nl.fah.monitor.message.MessageModel tableMessageData = new nl.fah.monitor.message.MessageModel();
 
     JTable table = new JTable(tableData);
+    Enumeration<NetworkInterface> interfaces = null;
+    JComboBox networkList;
+    JComboBox networkSendList;
 
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
-    {
-    };
-
-    final JInternalFrame jifSettings = new JInternalFrame("Settings")
-    {
-    };
-
-    final JInternalFrame jifLogging = new JInternalFrame("Logging")
-    {
-    };
-
-    final JInternalFrame jifReplay = new JInternalFrame("Replay")
     {
     };
 
@@ -152,6 +141,25 @@ public class Monitor extends JFrame {
                 return c;
             }
         });
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+            public void valueChanged(ListSelectionEvent event) {
+
+                ListSelectionModel lsm=(ListSelectionModel) event.getSource();
+                int selectedRow=lsm.getMinSelectionIndex();
+                // do some actions here, for example
+                // print first column value from selected row
+                if(selectedRow>=0)
+                {
+                    String key = table.getValueAt(selectedRow, 0).toString();
+                    System.out.println(key);
+
+                    String xml = dataLogger.getPayLoad(key);
+                    UpdateTable(xml);
+                }
+
+            }
+        });
 
     }
 
@@ -179,15 +187,13 @@ public class Monitor extends JFrame {
     boolean pause = true;
     String multicast = "239.0.0.1";
     int port = 6001;
-    String multicastStim = "239.0.0.1";
-    int portStim = 6001;
+    String multicastStim = "239.0.0.2";
+    int portStim = 2121;
 
     int nrOfLogs = 0;
     Logger logger = LoggerFactory.getLogger(Monitor.class);
 
     Hashtable enums = new Hashtable();
-
-    String modelPath = "/templates/model1";
 
     public static boolean validIP(String ip) {
         if (ip == null || ip.isEmpty()) return false;
@@ -217,39 +223,42 @@ public class Monitor extends JFrame {
         }
     }
     public void initDataList(){
-
+        logger.info("initDataList ");
         Properties prop = new Properties();
-        InputStream is = Monitor.class.getResourceAsStream("/sphinx.properties");
-
-        try {
+        try{
+            InputStream is = new FileInputStream("sphinx.properties");
             if(is != null && is.available()>0) {
                 prop.load(is);
-//                multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
-//                port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
+                multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
+                port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
+                logger.info("sphinx.context.daemon.ip=" + prop.getProperty("sphinx.context.daemon.ip"));
+
             }
             else{
-                logger.info("empty file or not existing: " + "/resources/sphinx.properties");
+                logger.info("empty file or not existing: " + "sphinx.properties");
             }
         } catch (IOException e) {
+            System.exit(0);
             e.printStackTrace();
         }
+
         logger.info("multicast=" + multicast);
         logger.info("port=" + port);
-
+        URL myURL = getClass().getProtectionDomain().getCodeSource().getLocation();
+        java.net.URI myURI = null;
         try {
-            prop.load(is);
-            logger.info("sphinx.context.daemon.ip=" + prop.getProperty("sphinx.context.daemon.ip"));
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
+            myURI = myURL.toURI();
+        } catch (URISyntaxException e1)
+        {}
 
-
-        URL location = this.getClass().getResource( modelPath);
-        String FullPath = location.getPath();
-        logger.debug("scanning directory:" + FullPath);
+        String FullPath = java.nio.file.Paths.get(myURI).toFile().toString();
+        logger.info("FullPath:" + FullPath);
+       // String path = new File(FullPath).getParent() + "\\templates\\model1";
+        String path = new File(FullPath).getParent() + "/templates/model1";
+        logger.info("scanning directory:" + path);
 
         ArrayList<File> files;
-        files = new ArrayList<File>(Arrays.asList(new File(FullPath).listFiles()));
+        files = new ArrayList<File>(Arrays.asList(new File(path).listFiles()));
         logger.info("number of xml-files:" + files.size());
 
         String[] dataListNames = new String[files.size()];
@@ -259,7 +268,7 @@ public class Monitor extends JFrame {
             File ff = files.get(i);
 
             StringBuilder m = new StringBuilder();
-            Boolean ok = Validator.Validate("src/main/resources/templates/model1/" + ff.getName(),"src/main/resources/data.xsd", m );
+            Boolean ok = Validator.Validate(path + "/" + ff.getName(), "data.xsd", m );
 
             if (ok) {
                 logger.info(ff.getName() + " is OK" );
@@ -306,9 +315,28 @@ public class Monitor extends JFrame {
                 logger.debug("cmbType:" + cmbType);
                 dataName = cmbType;
 
-                String fname = "/templates/model1/" + cmbType + ".xml";
-                InputStream is = Monitor.class.getResourceAsStream(fname);
+                URL myURL = getClass().getProtectionDomain().getCodeSource().getLocation();
+                java.net.URI myURI = null;
+                try {
+                    myURI = myURL.toURI();
+                } catch (URISyntaxException e1)
+                {}
+
+                //String FullPath =  "/Users/fhaul/work/monitor-gezinsman/test/templates/model1/"; // TODO
+                String FullPath = java.nio.file.Paths.get(myURI).toFile().toString();
+                String path = new File(FullPath).getParent();
+
+                logger.info("path: " + path);
+                String fname = path + "/templates/model1/" + cmbType + ".xml";
                 logger.info("reading: " + fname);
+
+                InputStream is = null;
+               try {
+                  is  = new FileInputStream(fname);
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
                 dataName = cmbType;
 
                 String xml = Utils.getStringFromInputStream(is);
@@ -454,18 +482,29 @@ public class Monitor extends JFrame {
             InetAddress group = null;
             MulticastSocket socket = null;
 
+            NetworkInterface ni = null;
+
+
             // outerloop
             while(true) {
                 try {
                     while(true){
                         if (!pause){
 
+                            try {
+                                ni = NetworkInterface.getByName(networkList.getSelectedItem().toString());
+                            } catch (SocketException e) {
+                                e.printStackTrace();
+                            }
+
                             multicast = ipTextField.getText();
                             port = Integer.parseInt( portTextField.getText() );
-                            logger.info("START MONITORING ON " + multicast + ":" + port);
+
                             try {
                                 socket = new MulticastSocket(port);
+                                socket.setReceiveBufferSize(10*1024);
                                 group = InetAddress.getByName(multicast);
+                                socket.setNetworkInterface(ni);
 
                             } catch (UnknownHostException e) {
                                 e.printStackTrace();
@@ -484,6 +523,8 @@ public class Monitor extends JFrame {
                         else Thread.sleep(250);
                     }
 
+                    logger.info("START MONITORING ON " + multicast + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
+
                     //innerloop
                     while(true) {
                         if (pause){
@@ -492,12 +533,15 @@ public class Monitor extends JFrame {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            logger.info("STOP MONITORING ON " + multicast + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
+
                             break;
                         }
                         update(socket);
+                        logger.debug("sleep");
                         Thread.sleep(10);
                     }
-                } catch (InterruptedException e) { e.printStackTrace();}
+                } catch (InterruptedException | SocketException e) { e.printStackTrace();}
             }
 
         }
@@ -506,12 +550,18 @@ public class Monitor extends JFrame {
             boolean TimeOut = false;
             byte[] buf = new byte[10*1024];
             packet = new DatagramPacket(buf, buf.length);
+
             try {
                 TimeOut = false;
                 socket.setSoTimeout(10);
+                logger.debug("call socket.receive");
                 socket.receive(packet);
+
+
+                logger.info("data received");
             } catch (SocketTimeoutException e) {
                 TimeOut = true;
+                logger.debug("socket receive timeout");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -519,139 +569,148 @@ public class Monitor extends JFrame {
             if (!TimeOut) {
 
                 java.util.Date date = new java.util.Date();
-                String received = new String(packet.getData());
-                logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
+                InetAddress address = packet.getAddress();
+                logger.info("address = " + address.getHostAddress());
+                int port = packet.getPort();
+                packet = new DatagramPacket(buf, buf.length, address, port);
+                logger.info("call packet.getData() " +  packet.getLength());
+                String received = new String(packet.getData(),0 , packet.getLength());
+                logger.info(packet.getAddress().getHostName() + " sends\n" + received);
+                updateGui(date, received);
 
-
-                // do some XML parsing
-                DocumentBuilderFactory dbf =
-                        DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = null;
-                Document doc = null;
-                InputSource is = new InputSource();
-                is.setCharacterStream(new StringReader(received.trim()));
-
-                StringBuilder m = new StringBuilder();
-                Validator.ValidateSource(received.trim(), "src/main/resources/data.xsd", m);
-                logger.debug(m.toString());
-
-                try {
-                    db = dbf.newDocumentBuilder();
-                    doc = db.parse(is);
-                } catch (ParserConfigurationException e) {
-                    e.printStackTrace();
-                } catch (SAXException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                NodeList nodes = doc.getElementsByTagName("data");
-
-                dataName = null;
-                dataKey = "";
-                dataType = "";
-                dataId = "";
-
-                if (nodes != null && (nodes.getLength() == 1)) {
-
-                    for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
-                        if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
-
-                            for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                                Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
-                                logger.debug(jj + ". [" + nnn.getNodeName() + "]");
-                                if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
-
-                                    if (nnn.getNodeName().contentEquals("name")) {
-                                        logger.debug("NAME=" + nnn.getTextContent());
-                                        dataName = nnn.getTextContent();
-
-                                    }
-                                    if (nnn.getNodeName().contentEquals("id")) {
-                                        logger.debug("ID=" + nnn.getTextContent());
-                                        dataId = nnn.getTextContent();
-                                    }
-
-                                    if (nnn.getNodeName().contentEquals("type")) {
-                                        logger.debug("TYPE=" + nnn.getTextContent());
-                                        dataType = nnn.getTextContent();
-                                    }
-
-                                    if (nnn.getNodeName().contentEquals("key")) {
-                                        logger.debug("KEY=" + nnn.getTextContent());
-                                        dataKey = nnn.getTextContent();
-                                    }
-                                }
-                            }
-                        } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
-                            Node payload = nodes.item(0).getChildNodes().item(j);
-
-                            logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
-                            for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                                logger.debug("childnode " + k);
-                                logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
-                                logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
-                                logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
-                                logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
-                                if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
-                                    logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
-                                    NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
-
-                                    logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
-                                            "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
-                                            "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
-                                    if (namedNodeMap.getNamedItem("range") != null)
-                                        logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    logger.debug("nodes==null or empty");
-                }
-
-                if (dataName != null) {
-                    data = received.trim();
-                    Vector v = new Vector();
-                    String timeString = (new Timestamp(date.getTime())).toString();
-                    v.add(timeString);
-                    v.add(new String(dataName));
-                    v.add(new String(dataType));
-                    v.add(new String(dataKey));
-
-                    v.add(new String(data));
-                    tableData.addText(v);
-
-                    String uniqueId = dataName + timeString;
-                    buffer.put(new String(uniqueId), new String(received));
-                    nrOfLogs++;
-                    logger.debug("added " + uniqueId + " to buffer, size=" + buffer.size());
-
-                    // add last received message to the datamonitor table
-
-                    UpdateTable(received);
-
-                    dataNrOfItems++;
-                    dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data, dataNrOfItems);
-
-
-                }
-                JScrollBar vertical = tableMessageScrollPane.getVerticalScrollBar();
-                logger.debug("vert. scroll value =" + vertical.getValue());
-                logger.debug("data logger size =" + dataLogger.getSize());
-                vertical.setValue(vertical.getMaximum() - 1);
-
-                EventQueue.invokeLater(new Runnable() {
-                    public void run() {
-                        repaint();
-                    }
-                });
 
             }
             else{
                 // time out
             }
+        }
+
+        private void updateGui(Date date, String received) {
+            // do some XML parsing
+            DocumentBuilderFactory dbf =
+                    DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = null;
+            Document doc = null;
+            InputSource is = new InputSource();
+            is.setCharacterStream(new StringReader(received.trim()));
+
+            StringBuilder m = new StringBuilder();
+            Validator.ValidateSource(received.trim(), "data.xsd", m);
+            logger.debug(m.toString());
+
+            try {
+                db = dbf.newDocumentBuilder();
+                doc = db.parse(is);
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (SAXException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            NodeList nodes = doc.getElementsByTagName("data");
+
+            dataName = null;
+            dataKey = "";
+            dataType = "";
+            dataId = "";
+
+            if (nodes != null && (nodes.getLength() == 1)) {
+
+                for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                    if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+
+                        for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                            Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
+                            logger.debug(jj + ". [" + nnn.getNodeName() + "]");
+                            if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
+
+                                if (nnn.getNodeName().contentEquals("name")) {
+                                    logger.debug("NAME=" + nnn.getTextContent());
+                                    dataName = nnn.getTextContent();
+
+                                }
+                                if (nnn.getNodeName().contentEquals("id")) {
+                                    logger.debug("ID=" + nnn.getTextContent());
+                                    dataId = nnn.getTextContent();
+                                }
+
+                                if (nnn.getNodeName().contentEquals("type")) {
+                                    logger.debug("TYPE=" + nnn.getTextContent());
+                                    dataType = nnn.getTextContent();
+                                }
+
+                                if (nnn.getNodeName().contentEquals("key")) {
+                                    logger.debug("KEY=" + nnn.getTextContent());
+                                    dataKey = nnn.getTextContent();
+                                }
+                            }
+                        }
+                    } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                        Node payload = nodes.item(0).getChildNodes().item(j);
+
+                        logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                        for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                            logger.debug("childnode " + k);
+                            logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
+                            logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
+                            logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
+                            logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
+                            if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
+                                logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
+                                NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
+
+                                logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
+                                        "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
+                                        "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
+                                if (namedNodeMap.getNamedItem("range") != null)
+                                    logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
+                            }
+                        }
+                    }
+                }
+            } else {
+                logger.debug("nodes==null or empty");
+            }
+
+            if (dataName != null) {
+                data = received.trim();
+                Vector v = new Vector();
+                String timeString = (new Timestamp(date.getTime())).toString();
+                v.add(timeString);
+                v.add(new String(dataName));
+                v.add(new String(dataType));
+                v.add(new String(dataKey));
+
+                v.add(new String(data));
+                tableData.addText(v);
+
+                String uniqueId = timeString;
+                buffer.put(new String(uniqueId), new String(received));
+                nrOfLogs++;
+                logger.debug("added " + uniqueId + " to buffer, size=" + buffer.size());
+
+                // add last received message to the datamonitor table
+
+                UpdateTable(received);
+
+                dataNrOfItems++;
+
+                dataLogger.log(packet.getAddress().getHostName(), uniqueId, dataName, dataType, data, dataNrOfItems);
+
+
+            }
+            JScrollBar vertical = tableMessageScrollPane.getVerticalScrollBar();
+            logger.debug("vert. scroll value =" + vertical.getValue());
+            logger.debug("data logger size =" + dataLogger.getSize());
+            vertical.setValue(vertical.getMaximum() - 1);
+
+            EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                    repaint();
+                }
+            });
         }
     }
 
@@ -665,7 +724,7 @@ public class Monitor extends JFrame {
         is.setCharacterStream(new StringReader(received.trim()));
 
         StringBuilder m = new StringBuilder();
-        Validator.ValidateSource(received.trim(), "src/main/resources/data.xsd", m);
+        Validator.ValidateSource(received.trim(), "data.xsd", m);
         logger.debug(m.toString());
 
         String data;
@@ -781,6 +840,11 @@ public class Monitor extends JFrame {
         t.start();
     }
 
+    public void setPriority(int priority)
+    {
+        t.setPriority(priority);
+    }
+
     public Monitor() {
         //setLayout(new BorderLayout());
 
@@ -811,86 +875,68 @@ public class Monitor extends JFrame {
             }
         });
 
-        JButton contextButton = new JButton(new AbstractAction("context") {
-            Logger logger = LoggerFactory.getLogger(DataMonitor.class);
+        JButton sendButtonStim = new JButton(new AbstractAction("send") {
+            Logger logger = LoggerFactory.getLogger(Monitor.class);
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String message = "<command type=\"GET\" value=\"LIST\" dest=\""
-                        + multicast+"\" port=\"" + port + "\" />";
+            public void sendData(String message, String ip, int port, String network){
 
                 InetAddress group = null;
                 try {
-                    group = InetAddress.getByName(multicast);
+                    group = InetAddress.getByName(ip);
                 } catch (UnknownHostException e6) {
                     e6.printStackTrace();
                 }
 
                 //create Multicast socket to to pretending group
                 MulticastSocket s = null;
+                NetworkInterface ni = null;
+
                 try {
                     s = new MulticastSocket(port);
+                    ni = NetworkInterface.getByName(network); // TODO: make all interfaces available on GUI
+
+                    s.setNetworkInterface(ni);
+                    s.joinGroup(group);
+                    logger.info("joined group on ni " + network);
+
+                    byte[] b = message.getBytes();
+
+                    DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
+
+                    logger.info("send data using network interface: " + network + " displayname=" +  ni.getDisplayName());
+                    s.send(dp);
+
                 } catch (IOException e7) {
                     e7.printStackTrace();
                 }
-                if (group != null && s != null) try {
-                    s.joinGroup(group);
-                } catch (IOException e8) {
-                    e8.printStackTrace();
-                }
 
-                int  count = 0;
-                byte[] b = message.getBytes();
 
-                DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
+
+
+
+
+
+/*
+
+                Enumeration<NetworkInterface> interfaces = null;
                 try {
-                    s.send(dp);
-                } catch (IOException e9) {
-                    e9.printStackTrace();
-                }
-
-                java.util.Date date = new java.util.Date();
-                logger.debug("context cmd send");
-
-            }
-
-        });
-
-        JButton sendButtonStim = new JButton(new AbstractAction("send") {
-            Logger logger = LoggerFactory.getLogger(Monitor.class);
-
-            public void sendData(String message, String ip, int port){
-
-                InetAddress group = null;
-                try {
-                    group = InetAddress.getByName(ip);
-                } catch (UnknownHostException e) {
+                    interfaces = NetworkInterface.getNetworkInterfaces();
+                } catch (SocketException e) {
                     e.printStackTrace();
                 }
 
-                //create Multicast socket to to pretending group
-                MulticastSocket s = null;
-                try {
-                    s = new MulticastSocket(port);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (group != null && s != null) try {
-                    s.joinGroup(group);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                while (interfaces.hasMoreElements())
+                {
+                    NetworkInterface networkInterface = interfaces.nextElement();
+                    if(networkInterface.getName().contentEquals("enp1s0"))
+                    {
+                        ni = networkInterface;
+                    }
+                    logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
                 }
 
-                int  count = 0;
-                byte[] b = message.getBytes();
+ */
 
-                DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
-                try {
-                    s.send(dp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                logger.debug("data has been sent");
             }
 
             @Override
@@ -928,12 +974,12 @@ public class Monitor extends JFrame {
                 logger.debug("port=" + portTextFieldStim.getText());
 
                 port =  Integer.parseInt( portTextFieldStim.getText().trim() );
-                sendData(msg, multicast, port);
-                logger.info("send data to " + multicast + ":" + port);
+                sendData(msg, multicast, port, networkSendList.getSelectedItem().toString());
+                logger.info("send data to " + multicast + ":" + port + " network:" + networkSendList.getSelectedItem().toString());
             }
         });
 
-        ipTextField = new JTextField(multicast, 8);
+        ipTextField = new JTextField(multicast, 6);
         ipTextField.setText(multicast);
         ipTextField.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
@@ -995,13 +1041,77 @@ public class Monitor extends JFrame {
             }
         });
 
+        Panel StimControlPanel = new Panel();
+
+        initDataList();
+
+        initD();
+
+
+
+        try {
+            interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        while (interfaces.hasMoreElements())
+        {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
+        }
+
+
+
+        logger.info("dataList: ");
+
+        logger.info("dataList items:" + dataList.getItemCount());
+        StimControlPanel.add(dataList);
+
         Panel ControlPanel = new Panel();
         ControlPanel.add(ipTextField);
         ControlPanel.add(portTextField);
+
+        try {
+            interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        int nrOfInterFaces =0;
+        while (interfaces.hasMoreElements())
+        {
+            nrOfInterFaces++;
+            interfaces.nextElement();
+        }
+
+        logger.info("nr of network interface: "+ nrOfInterFaces);
+        String[] nwStrings = new String[nrOfInterFaces];
+        String[] nwSendStrings = new String[nrOfInterFaces];
+
+        try {
+            interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        int ind = 0;
+        while(ind < nrOfInterFaces)
+        {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            logger.info("network interface: " + networkInterface.getName() + " [" +  networkInterface.getDisplayName() + "]");
+            nwStrings[ind] = networkInterface.getName();
+            nwSendStrings[ind] = networkInterface.getName();
+            ind++;
+        }
+
+        networkList = new JComboBox(nwStrings);
+        networkSendList = new JComboBox(nwSendStrings);
+        ControlPanel.add(networkList);
         ControlPanel.add(startButton);
         ControlPanel.add(stopButton);
         ControlPanel.add(clearButton);
-        ControlPanel.add(contextButton);
+
         jifMonAndStim.add(ControlPanel, BorderLayout.NORTH);
 
         Panel DataPanel = new Panel();
@@ -1012,7 +1122,7 @@ public class Monitor extends JFrame {
         DataPanel.add(tableMessageScrollPane);
         DataPanel.add(new JScrollPane(tableMessage));
 
-        ipTextFieldStim = new JTextField(multicastStim, 8);
+        ipTextFieldStim = new JTextField(multicastStim, 6);
         ipTextFieldStim.setText(multicastStim);
         ipTextFieldStim.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
@@ -1075,14 +1185,11 @@ public class Monitor extends JFrame {
         });
 
 
-        initDataList();
 
-        initD();
-
-        Panel StimControlPanel = new Panel();
         StimControlPanel.add(dataList);
         StimControlPanel.add(ipTextFieldStim);
         StimControlPanel.add(portTextFieldStim);
+        StimControlPanel.add(networkSendList);
         StimControlPanel.add(sendButtonStim);
 
         Panel StimPanel = new Panel();
@@ -1101,29 +1208,14 @@ public class Monitor extends JFrame {
 
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Monitor", jifMonAndStim);
-        tabbedPane.addTab("Logging", jifLogging);
-        tabbedPane.addTab("Replay", jifReplay);
-        tabbedPane.addTab("Settings", jifSettings);
+
         add(tabbedPane);
 
-        ImageIcon icon = createImageIcon("/images/TreasuresEgypt_Sphinx-icon.png",
-                "a pretty but meaningless splat");
-        this.setIconImage(icon.getImage());
+    //    ImageIcon icon = new ImageIcon(this.getClass().getResource("images/TreasuresEgypt_Sphinx-icon.png"),
+    //            "a pretty but meaningless splat");
+    //    this.setIconImage(icon.getImage());
 
 
     }
 
-    /** Returns an ImageIcon, or null if the path was invalid. */
-    protected ImageIcon createImageIcon(String path,
-                                        String description) {
-        logger.debug( "PATH=" + path );
-        java.net.URL imgURL = getClass().getResource(path);
-        logger.debug( "URL PATH=" + imgURL.getPath() );
-        if (imgURL != null) {
-            return new ImageIcon(imgURL, description);
-        } else {
-            System.err.println("Couldn't find file: " + path);
-            return null;
-        }
-    }
 }

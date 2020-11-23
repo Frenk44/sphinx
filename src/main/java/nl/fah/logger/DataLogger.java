@@ -1,7 +1,7 @@
 package nl.fah.logger;
 
 /**
- * Created by Haulussy on 16-11-2014.
+ *
  */
 public interface DataLogger {
 
@@ -11,5 +11,5 @@ public interface DataLogger {
     public boolean saveLog(String name);
     public boolean isEmpty();
     public void clear();
-    public String getPayLoad(String key, String dataName);
+    public String getPayLoad(String key);
 }

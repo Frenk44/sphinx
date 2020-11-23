@@ -1,9 +1,5 @@
 package nl.fah.monitor.message;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import javax.swing.*;
 
 public class MonitorMessageTool extends JFrame {

@@ -23,9 +23,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Properties;
 
-/**
- * Created by Haulussy on 5-11-2014.
- */
 public class ContextDaemon {
 
     static DaemonStorage contextData;

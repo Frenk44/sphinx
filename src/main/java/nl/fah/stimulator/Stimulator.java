@@ -1,9 +1,5 @@
 package nl.fah.stimulator;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import nl.fah.common.Types;
 import nl.fah.common.Utils;
 import org.slf4j.Logger;
@@ -21,11 +17,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
+import java.io.*;
 import java.net.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.*;
 
 public class Stimulator extends JFrame {
@@ -61,15 +56,42 @@ public class Stimulator extends JFrame {
             e.printStackTrace();
         }
 
+        NetworkInterface ni = null;
+        multicast = ipTextField.getText();
+        port = Integer.parseInt( portTextField.getText() );
+        SocketAddress socketAddress =  new InetSocketAddress(multicast, port);
+
+
+        Enumeration<NetworkInterface> interfaces = null;
+        try {
+            interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        while (interfaces.hasMoreElements())
+        {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
+        }
+
+        try {
+            ni = NetworkInterface.getByName("eno1"); // TODO: make all interfaces available on GUI
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
         //create Multicast socket to to pretending group
         MulticastSocket s = null;
         try {
             s = new MulticastSocket(port);
+            s.setNetworkInterface(ni);
         } catch (IOException e) {
             e.printStackTrace();
         }
         if (group != null && s != null) try {
             s.joinGroup(group);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -119,10 +141,9 @@ public class Stimulator extends JFrame {
         } catch (IOException e1) {
             e1.printStackTrace();
         }
-
-
-        URL location = this.getClass().getResource( modelPath);
-        String FullPath = location.getPath();
+        Path path = FileSystems.getDefault().getPath(".").toAbsolutePath();
+        logger.info("path:" + path.toString());
+        String FullPath = path +  modelPath;
         logger.debug("scanning directory:" + FullPath);
 
         files = new ArrayList<File>(Arrays.asList(new File(FullPath).listFiles()));
@@ -135,7 +156,8 @@ public class Stimulator extends JFrame {
             File ff = files.get(i);
 
             StringBuilder m = new StringBuilder();
-            Boolean ok = Validator.Validate("src/main/resources/templates/model1/" + ff.getName(),"src/main/resources/data.xsd", m );
+
+            Boolean ok = Validator.Validate(path + "/templates/model1/" + ff.getName(),path + "/data.xsd", m );
 
             if (ok) {
                 logger.info(ff.getName() + " is OK" );
@@ -182,14 +204,38 @@ public class Stimulator extends JFrame {
                 String cmbType = (String) jcmbType.getSelectedItem();
                 logger.debug("cmbType:" + cmbType);
                 dataName = cmbType;
+                Path path = FileSystems.getDefault().getPath(".").toAbsolutePath();
+                logger.info("path:" + path.toString());
 
-                String fname = "/templates/model1/" + cmbType + ".xml";
-                InputStream is = Stimulator.class.getResourceAsStream(fname);
-                logger.debug("reading: " + fname);
-                dataName = cmbType;
+                String xml = null;
 
-                String xml = Utils.getStringFromInputStream(is);
-                logger.debug(xml);
+                String FullPath = path +  modelPath;
+               // String FullPath =  "src/main/resources/templates/model1/"; // TODO
+                String fname = FullPath + "/" +  cmbType + ".xml";
+
+
+                DataInputStream reader = null;
+                try {
+                    reader = new DataInputStream(new FileInputStream(fname));
+                } catch (FileNotFoundException ex) {
+                    ex.printStackTrace();
+                }
+                int nBytesToRead = 0;
+                try {
+                    nBytesToRead = reader.available();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                if(nBytesToRead > 0) {
+                    byte[] bytes = new byte[nBytesToRead];
+                    try {
+                        reader.read(bytes);
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                    xml = new String(bytes);
+                    logger.info( xml);
+                }
 
                 DocumentBuilderFactory dbf =
                             DocumentBuilderFactory.newInstance();
@@ -265,7 +311,6 @@ public class Stimulator extends JFrame {
         ipTextField.setText(multicast);
         portTextField = new JTextField(4);
         portTextField.setText( Integer.toString(port)  );
-
     }
 
     public static String getCharacterDataFromElement(Element e) {
@@ -375,6 +420,7 @@ public class Stimulator extends JFrame {
         }
     };
 
+
     ArrayList<File> files;
 
     Thread t = new Thread(new StimulatorProcess());
@@ -382,7 +428,6 @@ public class Stimulator extends JFrame {
     private class StimulatorProcess implements Runnable {
 
         public void run() {
-
             // thread loop
             while (true){
 

@@ -1,9 +1,11 @@
 package nl.fah.monitor.data;
 
 /**
- * Created by Haulussy on 27-10-2014.
+ *
  */
 
+import nl.fah.common.Types;
+import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -14,6 +16,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -23,26 +28,116 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.*;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Vector;
 
-public class DataMonitor extends JFrame {
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
+import java.net.UnknownHostException;
 
-    final MessageModel tableData = new MessageModel();
+public class DataMonitor extends JFrame {
+    Logger logger = LoggerFactory.getLogger(nl.fah.monitor.data.DataMonitor.class);
+    final nl.fah.monitor.data.MessageModel tableData = new nl.fah.monitor.data.MessageModel();
     JTable table = new JTable(tableData);
+
+    int iii = 0;
+
+    final nl.fah.monitor.message.MessageModel tableMessageData = new nl.fah.monitor.message.MessageModel();
+    JTable tableMessage = new JTable(tableMessageData);
+
+    HashMap<Integer, String> dataStore = new HashMap<Integer, String>();
+    HashMap<Integer, Timestamp> dataTimeStore = new HashMap<Integer, Timestamp>();
+
     Label infoLabel;
     JTextField ipTextField;
     JTextField portTextField;
+    protected MulticastSocket socket = null;
+    protected byte[] buf = new byte[10*1024];
+    sharedProcess sharedData = new sharedProcess();
 
-    Thread t = new Thread(new InputProcess());
+    Thread sharedDataThread = new Thread(sharedData);
+    Thread receiverThread = new Thread(new receiverProcess(sharedData));
+    Thread updateGuiThread = new Thread(new updateGuiProcess(sharedData));
+
+
     boolean pause = true;
-    String multicast = "239.0.0.5";
-    int port = 12345;
+    String multicast = "239.0.0.4";
+    int port = 5474;
 
-    private class InputProcess implements Runnable {
+    private class receiverProcess implements Runnable {
+        sharedProcess sharedData = null;
+
+        public receiverProcess(sharedProcess sharedData) {
+            this.sharedData = sharedData;
+        }
+
+        @Override
+        public void run() {
+            logger.info("receiverProcess started");
+
+            ipTextField = new JTextField(multicast, 8);
+            portTextField = new JTextField(String.valueOf(port), 4);
+
+            try {
+                socket = new MulticastSocket(Integer.parseInt(portTextField.getText()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            InetAddress group = null;
+            try {
+                group = InetAddress.getByName(ipTextField.getText());
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+            try {
+                socket.joinGroup(group);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while (true) {
+                logger.debug("checking pause cmd");
+                while(!pause){
+                    logger.info("listening for data");
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                    try {
+                        socket.receive(packet);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    String received = new String(
+                            packet.getData(), 0, packet.getLength());
+
+                    logger.info("receiverProcess received: " + received);
+                    sharedData.putData(received);
+
+                    //TODO: FIFO buffer
+                    if ("end".equals(received)) {
+                        try {
+                            socket.leaveGroup(group);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        socket.close();
+                        break;
+                    }
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private class updateGuiProcess implements Runnable {
         Logger logger = LoggerFactory.getLogger(DataMonitor.class);
+
+        String last_data = "xxxx";
 
         String data;
         String dataName;
@@ -54,218 +149,394 @@ public class DataMonitor extends JFrame {
 
         DatagramPacket packet;
 
-        boolean isAlreadyOneClick;
+        sharedProcess sharedData;
+        Timestamp timestamp = null;
+        long sequence = -1;
+        String xml = null;
+
+        public updateGuiProcess(sharedProcess sharedData) {
+            this.sharedData = sharedData;
+        }
 
         public void run() {
-
             table.addMouseListener( new MouseAdapter(){
 
                 @Override
                 public void mouseClicked(MouseEvent e)
                 {
                     Long n = (new Date().getTime() - timeLastMouseEvent);
-                    logger.debug("mouse clicked");
+                    logger.info("mouse clicked");
 
                     if (e.getClickCount() == 2 && !e.isConsumed()) {
-                        logger.debug("double click");
+                        logger.info("double click");
                     }
                     else{
                         //only accept single click if time last
                       if   ( n > 1000)
-                          logger.debug("single click");
+                          logger.info("single click");
                     }
 
                     timeLastMouseEvent = new Date().getTime();
 
                     String aap = " clickcount=" + e.getClickCount();
-                    logger.debug(e.getSource().getClass() + aap + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
+                    logger.info(e.getSource().getClass() + aap + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
                 }
 
 
             });
 
-            InetAddress group = null;
-            MulticastSocket socket = null;
+            while(true){
+                if (!pause) {
+                    logger.debug("UpdateGuiProcess running");
 
-            // outerloop
-            while(true) {
-                try {
-                    while(true){
-                        if (!pause){
+                    if ( (sharedData != null)
+                            && (sharedData.getData() != null))
+                    {
+                        if (sequence != sharedData.getSequence()){
+                            logger.info("sequence: " + sharedData.getSequence());
+                            last_data = xml;
+                            xml = sharedData.getData();
+                            timestamp = sharedData.getTimeValidity();
+                            sequence = sharedData.getSequence();
+                            logger.info(xml);
 
-                            multicast = ipTextField.getText();
-                            port = Integer.parseInt( portTextField.getText() );
-                            logger.info("START MONITORING ON " + multicast + ":" + port);
-                            try {
-                                socket = new MulticastSocket(port);
-                                group = InetAddress.getByName(multicast);
+                            updateData(xml);
+                            Date date = new Date();
+                            long time = date.getTime();
+                            //Passed the milliseconds to constructor of Timestamp class
+                            Timestamp ts = new Timestamp(time);
+                            UpdateMessageTable(xml, ts);
 
-                            } catch (UnknownHostException e) {
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                            try {
-                                socket.joinGroup(group);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                            break;
+                            logger.debug(ts.toString());
+                            dataStore.put(iii, xml);
+                            dataTimeStore.put(iii, ts);
+                            iii++;
+                            logger.info("datastore size: " + dataStore.size());
                         }
-                        else Thread.sleep(250);
-                    }
-
-                    //innerloop
-                    while(true) {
-                        if (pause){
+                        else
+                        {
+                            logger.debug("no new data received");
                             try {
-                                socket.leaveGroup(group);
-                            } catch (IOException e) {
+                                Thread.sleep(5);
+                            } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-                            break;
                         }
-                        update(socket);
-                        Thread.sleep(10);
                     }
-                } catch (InterruptedException e) { e.printStackTrace();}
+                    else
+                    {
+                        try {
+                            Thread.sleep(5);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                else
+                {
+                    logger.debug("UpdateGuiProcess paused");
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
+        }
+    }
 
+    private void UpdateMessageTable(String received, Timestamp ts) {
+        // do some XML parsing
+        DocumentBuilderFactory dbf =
+                DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = null;
+        Document doc = null;
+        InputSource is = new InputSource();
+        is.setCharacterStream(new StringReader(received.trim()));
+
+        StringBuilder m = new StringBuilder();
+        Validator.ValidateSource(received.trim(), "src/main/resources/data.xsd", m);
+        logger.debug("validator output: " + m.toString());
+
+        try {
+            db = dbf.newDocumentBuilder();
+            doc = db.parse(is);
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        private void update(MulticastSocket socket) {
-            boolean TimeOut = false;
-            byte[] buf = new byte[10*1024];
-            packet = new DatagramPacket(buf, buf.length);
+
+
+        NodeList nodes = doc.getElementsByTagName("data");
+
+        if (nodes != null && (nodes.getLength() == 1)) {
+
+            tableMessageData.clearData();
+            for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+
+                    for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                        Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
+                        if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
+
+                            if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
+                                String dataName = nnn.getTextContent();
+
+                                Vector v = new Vector();
+                                v.add(new String("MESSAGE"));
+                                v.add(new String("TEXT"));
+                                v.add(new String(dataName));
+                                tableMessageData.addText(v);
+
+                            } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
+                                String dataId = nnn.getTextContent();
+                                Vector v = new Vector();
+                                v.add(new String("ID"));
+                                v.add(new String("TEXT"));
+                                v.add(new String(dataId));
+                                tableMessageData.addText(v);
+                            } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
+                                String dataKey = nnn.getTextContent();
+                            } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
+                                String dataType = nnn.getTextContent();
+                                Vector v = new Vector();
+                                v.add(new String("TYPE"));
+                                v.add(new String("TEXT"));
+                                v.add(new String(dataType));
+                                tableMessageData.addText(v);
+                            }
+                        }
+                    }
+                } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                    Node payload = nodes.item(0).getChildNodes().item(j);
+
+                    //Date date = new Date();
+                    //long time = date.getTime();
+                    //Passed the milliseconds to constructor of Timestamp class
+                    //Timestamp ts = new Timestamp(time);
+
+                    logger.debug(ts.toString());
+
+                    Vector v2 = new Vector();
+                    v2.add(new String("TIME"));
+                    v2.add(new String("TEXT"));
+                    v2.add(new String(ts.toString()));
+                    tableMessageData.addText(v2);
+
+                    logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                    for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                        if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
+                            NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+
+                            logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                    "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                    "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+
+                            Vector v = new Vector();
+                            v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
+                            v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
+                            v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                            tableMessageData.addText(v);
+
+                            if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
+                                logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                        }
+                    }
+                }
+            }
+        } else {
+            logger.info("nodes==null or empty");
+        }
+
+
+    }
+
+    private void updateData(String received) {
+        logger.info("updating gui");
+
+        boolean TimeOut = false;
+        byte[] buf = new byte[10*1024];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
+
+        if (!TimeOut) {
+
+            java.util.Date date = new java.util.Date();
+            // do some XML parsing
+            DocumentBuilderFactory dbf =
+                    DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = null;
+            Document doc = null;
+            InputSource is = new InputSource();
+            is.setCharacterStream(new StringReader(received.trim()));
+
             try {
-                TimeOut = false;
-                socket.setSoTimeout(10);
-                socket.receive(packet);
-            } catch (SocketTimeoutException e) {
-                TimeOut = true;
+                db = dbf.newDocumentBuilder();
+                doc = db.parse(is);
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (SAXException e) {
+                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            if (!TimeOut) {
+            NodeList nodes = doc.getElementsByTagName("data");
 
-                java.util.Date date = new java.util.Date();
-                String received = new String(packet.getData());
-                logger.info(packet.getAddress().getHostName() + " sends\n" + received);
+            String dataName = null;
+            String dataKey = "";
+            String dataType = "";
+            String dataId = "";
 
-                // do some XML parsing
-                DocumentBuilderFactory dbf =
-                        DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = null;
-                Document doc = null;
-                InputSource is = new InputSource();
-                is.setCharacterStream(new StringReader(received.trim()));
+            if (nodes != null && (nodes.getLength() == 1)) {
 
-                try {
-                    db = dbf.newDocumentBuilder();
-                    doc = db.parse(is);
-                } catch (ParserConfigurationException e) {
-                    e.printStackTrace();
-                } catch (SAXException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                    if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
-                NodeList nodes = doc.getElementsByTagName("data");
+                        for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                            Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
+                            logger.debug(jj + ". [" + nnn.getNodeName() + "]");
+                            if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
 
-                dataName = null;
-                dataKey = "";
-                dataType = "";
-                dataId = "";
+                                if (nnn.getNodeName().contentEquals("name")) {
+                                    logger.debug("NAME=" + nnn.getTextContent());
+                                    dataName = nnn.getTextContent();
 
-                if (nodes != null && (nodes.getLength() == 1)) {
-
-                    for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
-                        if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
-
-                            for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                                Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
-                                logger.debug(jj + ". [" + nnn.getNodeName() + "]");
-                                if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
-
-                                    if (nnn.getNodeName().contentEquals("name")) {
-                                        logger.debug("NAME=" + nnn.getTextContent());
-                                        dataName = nnn.getTextContent();
-
-                                    }
-                                    if (nnn.getNodeName().contentEquals("id")) {
-                                        logger.debug("ID=" + nnn.getTextContent());
-                                        dataId = nnn.getTextContent();
-                                    }
-
-                                    if (nnn.getNodeName().contentEquals("type")) {
-                                        logger.debug("TYPE=" + nnn.getTextContent());
-                                        dataType = nnn.getTextContent();
-                                    }
-
-                                    if (nnn.getNodeName().contentEquals("key")) {
-                                        logger.debug("KEY=" + nnn.getTextContent());
-                                        dataKey = nnn.getTextContent();
-                                    }
                                 }
-                            }
-                        } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
-                            Node payload = nodes.item(0).getChildNodes().item(j);
+                                if (nnn.getNodeName().contentEquals("id")) {
+                                    logger.debug("ID=" + nnn.getTextContent());
+                                    dataId = nnn.getTextContent();
+                                }
 
-                            logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
-                            for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                                logger.debug("childnode " + k);
-                                logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
-                                logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
-                                logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
-                                logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
-                                if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
-                                    logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
-                                    NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
+                                if (nnn.getNodeName().contentEquals("type")) {
+                                    logger.debug("TYPE=" + nnn.getTextContent());
+                                    dataType = nnn.getTextContent();
+                                }
 
-                                    logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
-                                            "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
-                                            "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
-                                    if (namedNodeMap.getNamedItem("range") != null)
-                                        logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
+                                if (nnn.getNodeName().contentEquals("key")) {
+                                    logger.debug("KEY=" + nnn.getTextContent());
+                                    dataKey = nnn.getTextContent();
                                 }
                             }
                         }
+                    } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                        Node payload = nodes.item(0).getChildNodes().item(j);
+
+                        logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                        for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                            logger.debug("childnode " + k);
+                            logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
+                            logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
+                            logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
+                            logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
+                            if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
+                                logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
+                                NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
+
+                                logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
+                                        "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
+                                        "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
+                                if (namedNodeMap.getNamedItem("range") != null)
+                                    logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
+                            }
+                        }
                     }
-                } else {
-                    logger.debug("nodes==null or empty");
                 }
-
-                if (dataName != null) {
-                    data = received.trim();
-                    Vector v = new Vector();
-                    v.add((new Timestamp(date.getTime())).toString());
-                    v.add(new String(dataName));
-                    v.add(new String(dataType));
-                    v.add(new String(dataKey));
-
-                    v.add(new String(data));
-                    tableData.addText(v);
-                }
-                // TODO : auto scroll down
+            } else {
+                logger.debug("nodes==null or empty");
             }
-            else{
-                // time out
+
+            if (dataName != null) {
+                String data = received.trim();
+
+                Vector v = new Vector();
+                v.add((new Timestamp(date.getTime())).toString());
+                v.add(dataName);
+                v.add(dataType);
+                v.add(dataKey);
+
+                v.add(data);
+                tableData.addText(v);
             }
         }
     }
 
 
     public void start(){
-        t.start();
+        sharedDataThread.setPriority(Thread.MAX_PRIORITY);
+        sharedDataThread.start();
+
+        updateGuiThread.setPriority(Thread.MAX_PRIORITY);
+        updateGuiThread.start();
+
+        receiverThread.setPriority(Thread.MAX_PRIORITY);
+        receiverThread.start();
+
+    }
+
+    void initD(){
+        tableMessage.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
+        {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+            {
+                final Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (row > 3) c.setBackground(row % 2 == 0 ?  new Color(230,240,230) : Color.WHITE);
+                else{
+                    c.setFont( new Font(c.getFont().getName(), Font.BOLD, c.getFont().getSize()) );
+                    c.setBackground(  Color.LIGHT_GRAY );
+                }
+                return c;
+            }
+        });
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
+        {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+            {
+                final Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                c.setBackground(row % 2 == 0 ? new Color(230,240,230)  : Color.WHITE);
+                return c;
+            }
+        });
+
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+
+                // JUST IGNORE WHEN USER HAS ATLEAST ONE SELECTION
+                if(e.getValueIsAdjusting())
+                {
+                    return;
+                }
+                ListSelectionModel lsm=(ListSelectionModel) e.getSource();
+
+                if(lsm.isSelectionEmpty())
+                {
+              //      JOptionPane.showMessageDialog(null, "No selection");
+                }else
+                {
+                    int selectedRow=lsm.getMinSelectionIndex();
+                    String xml = dataStore.get(selectedRow);
+                    Timestamp ts = dataTimeStore.get(selectedRow);
+                    logger.debug("row " + selectedRow + " has stored: " + xml);
+                    UpdateMessageTable(xml, ts);
+
+               //     JOptionPane.showMessageDialog(null, "Selected Row "+selectedRow);
+                }
+            }
+        });
+
     }
 
     public DataMonitor() {
         setLayout(new BorderLayout());
-
+        initD();
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -287,6 +558,9 @@ public class DataMonitor extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 MessageModel dm = (MessageModel)table.getModel();
                 dm.clearData();
+                dataStore.clear();
+                sharedData.clearSequence();
+                iii = 0;
             }
         });
 
@@ -350,7 +624,17 @@ public class DataMonitor extends JFrame {
         add(InfoPanel, BorderLayout.SOUTH);
 
         add(ControlPanel, BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        Panel mainPanel = new Panel();
+
+        JScrollPane scrollDataPane = new JScrollPane(table);
+        scrollDataPane.setPreferredSize(new Dimension(460, 240));
+        mainPanel.add(scrollDataPane, BorderLayout.NORTH);
+
+        JScrollPane scrollMessagePane = new JScrollPane(tableMessage);
+        scrollMessagePane.setPreferredSize(new Dimension(460, 320));
+        mainPanel.add(scrollMessagePane, BorderLayout.SOUTH);
+        add(mainPanel, BorderLayout.CENTER);
+
 
         infoLabel = new Label();
         infoLabel.setText("idle");

@@ -21,10 +21,6 @@ import java.io.StringReader;
 import java.net.*;
 
 /**
- * Created by Haulussy on 5-11-2014.
- *
- *  * TODO: make nice interface with record, pause, stop buttons and info panel
- *  * TODO: make multicast address configurable in the interface
  */
 public class LoggerTool extends JFrame {
 

@@ -1,9 +1,5 @@
 package nl.fah.monitor;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import javax.swing.*;
 
 public class MonitorTool extends JFrame {
@@ -12,6 +8,7 @@ public class MonitorTool extends JFrame {
         monitor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         monitor.setSize(478,600);
         monitor.setVisible(true);
+        monitor.setPriority(Thread.MAX_PRIORITY);
         monitor.start();
         monitor.setTitle("SPHINX Tool");
     }

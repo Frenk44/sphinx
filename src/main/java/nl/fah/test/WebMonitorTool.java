@@ -1,15 +1,14 @@
 package nl.fah.test;
 
 /**
- * Created by Haulussy on 23-10-2014.
- *
  * The monitor tool is a webbased program to let the user use a webbrowser
  * to connect to SPHINX multicast port and monitor xml message traffic.
  *
  */
 
 /**
- Java ECHO client with UDP sockets example
+ *
+ based on Java ECHO client with UDP sockets example
  Silver Moon (m00n.silv3r@gmail.com)
  */
 

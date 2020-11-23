@@ -1,8 +1,5 @@
 package nl.fah.common;
 
-/**
- * Created by Haulussy on 19-11-2014.
- */
 public class Types {
     public static final String MSG_TYPE_CONTEXT = "CONTEXT";
     public static final String MSG_TYPE_PERSISTENT = "PERSISTENT";

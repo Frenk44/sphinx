@@ -1,10 +1,6 @@
 package nl.fah.test;
 
 /**
- * Created by Haulussy on 23-10-2014.
- */
-
-/**
  Java ECHO client with UDP sockets example
  Silver Moon (m00n.silv3r@gmail.com)
  */

@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.Set;
 
 /**
- * Created by Haulussy on 19-11-2014.
- *
  * Data is stored persistently on disk
  */
 public class DaemonStorageImpl implements DaemonStorage {

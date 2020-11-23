@@ -1,9 +1,5 @@
 package nl.fah.monitor.message;
 
-/**
- * Created by Haulussy on 27-10-2014.
- */
-
 import nl.fah.common.Types;
 import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
@@ -28,6 +24,7 @@ import java.io.StringReader;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Vector;
 
 public class MessageMonitor extends JFrame {
@@ -89,6 +86,18 @@ public class MessageMonitor extends JFrame {
             InetAddress group = null;
             MulticastSocket socket = null;
 
+            Enumeration<NetworkInterface> interfaces = null;
+            try {
+                interfaces = NetworkInterface.getNetworkInterfaces();
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+
+            while (interfaces.hasMoreElements())
+            {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                logger.info("network interface: " + networkInterface.getDisplayName());
+            }
 
             // outerloop
             while(true) {
@@ -111,6 +120,10 @@ public class MessageMonitor extends JFrame {
                                 e.printStackTrace();
                             }
 
+
+
+
+                            NetworkInterface ni = NetworkInterface.getByName("hme0");
                             try {
                                 socket.joinGroup(group);
 
@@ -141,7 +154,7 @@ public class MessageMonitor extends JFrame {
                         update(socket);
                         Thread.sleep(10);
                     }
-                } catch (InterruptedException e) { e.printStackTrace();}
+                } catch (InterruptedException | SocketException e) { e.printStackTrace();}
             }
 
         }
@@ -163,8 +176,6 @@ public class MessageMonitor extends JFrame {
                 String received = new String(packet.getData());
                 logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
                 UpdateTable(received);
-
-
             }
             // TODO : auto scroll down
         }

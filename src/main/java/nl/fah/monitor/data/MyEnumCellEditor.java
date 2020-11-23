@@ -5,9 +5,6 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableModel;
 import java.awt.*;
 
-/**
- * Created by Haulussy on 3-11-2014.
- */
 public class MyEnumCellEditor extends AbstractCellEditor implements TableCellEditor
 {
     private JComboBox editor;
