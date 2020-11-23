@@ -17,8 +17,5 @@ To build:
 To execute:
 <br> go to the test directory and copy the generated jar from the target directory: copy ..\target\*.jar .
 <br> execute: java -jar monitor-1.0-SNAPSHO-jar-with-dependencies.jar
-The SPHINX infrastructure consists of a number of tools, which can be used by application developers to:<br>
-<br> 1) define XML-messages
-<br> 2) MONITOR XML-messages
-<br> 3) STIMULATE XML-messages
+
 
