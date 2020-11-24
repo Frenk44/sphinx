@@ -24,6 +24,8 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Stimulator extends JFrame {
+    static String propFile = "/sphinx.properties";
+
     JComboBox dataList;
     JComboBox dataType;
     JTextField dataKey;
@@ -34,7 +36,6 @@ public class Stimulator extends JFrame {
     final JInternalFrame jif1 = new JInternalFrame("Frame 1")
     {
     };
-
 
     String modelPath = "/templates/model1";
     String dataName = "";
@@ -127,6 +128,8 @@ public class Stimulator extends JFrame {
                 logger.info("multicast=" + multicast);
                 port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
                 logger.info("port=" + port);
+                modelPath = prop.getProperty(Types.CONFIG_MODEL_PATH);
+                logger.info("modelPath=" + modelPath);
             }
             else{
                 logger.info("empty file or not existing: " + "/resources/sphinx.properties");

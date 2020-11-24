@@ -18,5 +18,6 @@ public class Types {
     public static final String CONFIG_PERSISTENCE_DAEMON_IP = "sphinx.persistence.daemon.ip";
     public static final String CONFIG_PERSISTENCE_DAEMON_PORT = "sphinx.persistence.daemon.port";
     public static final String CONFIG_PERSISTENCE_DAEMON_FILESTORE = "sphinx.persistence.daemon.filestore";
+    public static final String CONFIG_MODEL_PATH = "sphinx.modelpath";
 
 }
