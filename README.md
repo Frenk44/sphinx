@@ -13,7 +13,7 @@ To build:
   <li> install maven</li>
   <li> install git</li>
   <li> git clone https://github.com/Frenk44/sphinx.git</li>
-  <li> mvn clean install</li>
+  <li> goto sphinx directory and build: mvn clean install</li>
 
 <br> 
 To execute:
