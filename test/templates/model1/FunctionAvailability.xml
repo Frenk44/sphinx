@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>FunctionAvailability</name>
+    </header>
+    <payload>
+        <item name='sequence_number' type='number' />
+        <item name='function_id' type='number' />
+        <item name='availability' type='enum' range='unknown,not_available,degraded,available' />
+    </payload>
+</data>

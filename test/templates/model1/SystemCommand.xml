@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data>
+    <header>
+        <name>SystemCommand</name>
+    </header>
+    <payload>
+        <item name='system_id' type='number' />
+        <item name='command' type='enum' range='get_system_functions,output_logging,go_online,go_offline'  />
+    </payload>
+</data>
