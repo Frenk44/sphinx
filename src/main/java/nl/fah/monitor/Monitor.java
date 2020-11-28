@@ -1081,8 +1081,13 @@ public class Monitor extends JFrame {
         int nrOfInterFaces =0;
         while (interfaces.hasMoreElements())
         {
-            nrOfInterFaces++;
-            interfaces.nextElement();
+            try {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (networkInterface.isUp() && (networkInterface.supportsMulticast() || networkInterface.isLoopback())) nrOfInterFaces++;
+                interfaces.nextElement();                
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
         }
 
         logger.info("nr of network interface: "+ nrOfInterFaces);
@@ -1098,11 +1103,19 @@ public class Monitor extends JFrame {
         int ind = 0;
         while(ind < nrOfInterFaces)
         {
-            NetworkInterface networkInterface = interfaces.nextElement();
-            logger.info("network interface: " + networkInterface.getName() + " [" +  networkInterface.getDisplayName() + "]");
-            nwStrings[ind] = networkInterface.getName();
-            nwSendStrings[ind] = networkInterface.getName();
-            ind++;
+            try{
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (networkInterface.isUp() && (networkInterface.supportsMulticast() || networkInterface.isLoopback())) {
+                    logger.info("network interface: " + networkInterface.getName() + " [" +  networkInterface.getDisplayName() + "]");
+                    nwStrings[ind] = networkInterface.getName();
+                    nwSendStrings[ind] = networkInterface.getName();
+                    ind++;
+
+                }
+
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
         }
 
         networkList = new JComboBox(nwStrings);
