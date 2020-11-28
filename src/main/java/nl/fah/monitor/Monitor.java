@@ -183,12 +183,13 @@ public class Monitor extends JFrame {
 
     JScrollPane tableMessageScrollPane;
 
-    Thread t = new Thread(new InputProcess());
     boolean pause = true;
     String multicast = "239.0.0.1";
     int port = 6001;
     String multicastStim = "239.0.0.2";
     int portStim = 2121;
+
+    Thread t = new Thread(new InputProcess("main", multicast, port));
 
     int nrOfLogs = 0;
     Logger logger = LoggerFactory.getLogger(Monitor.class);
@@ -444,12 +445,22 @@ public class Monitor extends JFrame {
         String dataType;
         String dataKey = "NOT SET";
         String dataId = "NOT SET";
+        String name;
+        String ip;
+        int port;
 
         long timeLastMouseEvent;
 
         DatagramPacket packet;
 
         boolean isAlreadyOneClick;
+
+        public InputProcess(String name, String ip, int port)
+        {
+            this.name = name;
+            this.ip = ip;
+            this.port = port;
+        }
 
         public void run() {
 
