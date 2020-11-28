@@ -4,7 +4,6 @@ import nl.fah.common.Types;
 import nl.fah.common.Utils;
 import nl.fah.logger.DataLogger;
 import nl.fah.logger.DataLoggerImpl;
-import nl.fah.monitor.data.DataMonitor;
 import nl.fah.monitor.data.MessageModel;
 import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
@@ -33,8 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.net.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -189,7 +186,7 @@ public class Monitor extends JFrame {
     String multicastStim = "239.0.0.2";
     int portStim = 2121;
 
-    Thread t = new Thread(new InputProcess("main", multicast, port));
+    Thread inputThread1 = new Thread(new InputProcess( "input-thread-1",  multicast, port));
 
     int nrOfLogs = 0;
     Logger logger = LoggerFactory.getLogger(Monitor.class);
@@ -848,12 +845,12 @@ public class Monitor extends JFrame {
     }
 
     public void start(){
-        t.start();
+        inputThread1.start();
     }
 
     public void setPriority(int priority)
     {
-        t.setPriority(priority);
+        inputThread1.setPriority(priority);
     }
 
     public Monitor() {
