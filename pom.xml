@@ -33,12 +33,7 @@
         </dependency>
     </dependencies>
     <build>
-
-    <resources>
-        <resource>
-            <directory>.</directory>
-        </resource>
-    </resources>
+        
 
     <plugins>
         <!--
