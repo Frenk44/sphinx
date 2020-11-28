@@ -1232,9 +1232,9 @@ public class Monitor extends JFrame {
 
         add(tabbedPane);
 
-    //    ImageIcon icon = new ImageIcon(this.getClass().getResource("images/TreasuresEgypt_Sphinx-icon.png"),
-    //            "a pretty but meaningless splat");
-    //    this.setIconImage(icon.getImage());
+        ImageIcon icon = new ImageIcon(this.getClass().getResource("/images/TreasuresEgypt_Sphinx-icon.png"),
+                "a pretty but meaningless splat");
+        this.setIconImage(icon.getImage());
 
 
     }
