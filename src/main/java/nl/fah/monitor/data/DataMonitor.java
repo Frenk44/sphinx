@@ -43,7 +43,7 @@ public class DataMonitor extends JFrame {
     final nl.fah.monitor.data.MessageModel tableData = new nl.fah.monitor.data.MessageModel();
     JTable table = new JTable(tableData);
 
-    int iii = 0;
+    int nrOfMsgs = 0;
 
     final nl.fah.monitor.message.MessageModel tableMessageData = new nl.fah.monitor.message.MessageModel();
     JTable tableMessage = new JTable(tableMessageData);
@@ -208,9 +208,9 @@ public class DataMonitor extends JFrame {
                             UpdateMessageTable(xml, ts);
 
                             logger.debug(ts.toString());
-                            dataStore.put(iii, xml);
-                            dataTimeStore.put(iii, ts);
-                            iii++;
+                            dataStore.put(nrOfMsgs, xml);
+                            dataTimeStore.put(nrOfMsgs, ts);
+                            nrOfMsgs++;
                             logger.info("datastore size: " + dataStore.size());
                         }
                         else
@@ -269,8 +269,6 @@ public class DataMonitor extends JFrame {
             e.printStackTrace();
         }
 
-
-
         NodeList nodes = doc.getElementsByTagName("data");
 
         if (nodes != null && (nodes.getLength() == 1)) {
@@ -280,33 +278,33 @@ public class DataMonitor extends JFrame {
                 if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
                     for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                        Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
-                        if (nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
+                        Node node = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
+                        if (node.getTextContent() != null && !node.getTextContent().isEmpty() && !node.getNodeName().contentEquals("#text")) {
 
-                            if (nnn.getNodeName().contentEquals(Types.DATA_NAME)) {
-                                String dataName = nnn.getTextContent();
+                            if (node.getNodeName().contentEquals(Types.DATA_NAME)) {
+                                String dataName = node.getTextContent();
 
                                 Vector v = new Vector();
-                                v.add(new String("MESSAGE"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataName));
+                                v.add("MESSAGE");
+                                v.add("TEXT");
+                                v.add(dataName);
                                 tableMessageData.addText(v);
 
-                            } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
-                                String dataId = nnn.getTextContent();
+                            } else if (node.getNodeName().contentEquals(Types.DATA_ID)) {
+                                String dataId = node.getTextContent();
                                 Vector v = new Vector();
-                                v.add(new String("ID"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataId));
+                                v.add("ID");
+                                v.add("TEXT");
+                                v.add(dataId);
                                 tableMessageData.addText(v);
-                            } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
-                                String dataKey = nnn.getTextContent();
-                            } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
-                                String dataType = nnn.getTextContent();
+                            } else if (node.getNodeName().contentEquals(Types.DATA_KEY)) {
+                                String dataKey = node.getTextContent();
+                            } else if (node.getNodeName().contentEquals(Types.DATA_TYPE)) {
+                                String dataType = node.getTextContent();
                                 Vector v = new Vector();
-                                v.add(new String("TYPE"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataType));
+                                v.add("TYPE");
+                                v.add("TEXT");
+                                v.add(dataType);
                                 tableMessageData.addText(v);
                             }
                         }
@@ -322,28 +320,28 @@ public class DataMonitor extends JFrame {
                     logger.debug(ts.toString());
 
                     Vector v2 = new Vector();
-                    v2.add(new String("TIME"));
-                    v2.add(new String("TEXT"));
-                    v2.add(new String(ts.toString()));
+                    v2.add("TIME");
+                    v2.add("TEXT");
+                    v2.add(ts.toString());
                     tableMessageData.addText(v2);
 
                     logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
                     for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
                         if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
-                            NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+                            NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
 
-                            logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
-                                    "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
-                                    "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                            logger.debug(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                    "  value: " + namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                    "  type: " + namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
 
                             Vector v = new Vector();
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue());
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue());
                             tableMessageData.addText(v);
 
-                            if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
-                                logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                            if (namedNodeMap.getNamedItem(Types.DATA_RANGE) != null)
+                                logger.debug("  range: " + namedNodeMap.getNamedItem(Types.DATA_RANGE).getNodeValue());
                         }
                     }
                 }
@@ -351,8 +349,6 @@ public class DataMonitor extends JFrame {
         } else {
             logger.info("nodes==null or empty");
         }
-
-
     }
 
     private void updateData(String received) {
@@ -397,28 +393,27 @@ public class DataMonitor extends JFrame {
                     if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
                         for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                            Node nnn = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
-                            logger.debug(jj + ". [" + nnn.getNodeName() + "]");
-                            if (nnn != null && nnn.getTextContent() != null && !nnn.getTextContent().isEmpty() && !nnn.getNodeName().contentEquals("#text")) {
+                            Node node = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
+                            logger.debug(jj + ". [" + node.getNodeName() + "]");
+                            if (node != null && node.getTextContent() != null && !node.getTextContent().isEmpty() && !node.getNodeName().contentEquals("#text")) {
 
-                                if (nnn.getNodeName().contentEquals("name")) {
-                                    logger.debug("NAME=" + nnn.getTextContent());
-                                    dataName = nnn.getTextContent();
-
+                                if (node.getNodeName().contentEquals("name")) {
+                                    logger.debug("NAME=" + node.getTextContent());
+                                    dataName = node.getTextContent();
                                 }
-                                if (nnn.getNodeName().contentEquals("id")) {
-                                    logger.debug("ID=" + nnn.getTextContent());
-                                    dataId = nnn.getTextContent();
-                                }
-
-                                if (nnn.getNodeName().contentEquals("type")) {
-                                    logger.debug("TYPE=" + nnn.getTextContent());
-                                    dataType = nnn.getTextContent();
+                                if (node.getNodeName().contentEquals("id")) {
+                                    logger.debug("ID=" + node.getTextContent());
+                                    dataId = node.getTextContent();
                                 }
 
-                                if (nnn.getNodeName().contentEquals("key")) {
-                                    logger.debug("KEY=" + nnn.getTextContent());
-                                    dataKey = nnn.getTextContent();
+                                if (node.getNodeName().contentEquals("type")) {
+                                    logger.debug("TYPE=" + node.getTextContent());
+                                    dataType = node.getTextContent();
+                                }
+
+                                if (node.getNodeName().contentEquals("key")) {
+                                    logger.debug("KEY=" + node.getTextContent());
+                                    dataKey = node.getTextContent();
                                 }
                             }
                         }
@@ -477,7 +472,7 @@ public class DataMonitor extends JFrame {
 
     }
 
-    void initD(){
+    void initDataMonitor(){
         tableMessage.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
         {
             @Override
@@ -527,7 +522,6 @@ public class DataMonitor extends JFrame {
                     logger.debug("row " + selectedRow + " has stored: " + xml);
                     UpdateMessageTable(xml, ts);
 
-               //     JOptionPane.showMessageDialog(null, "Selected Row "+selectedRow);
                 }
             }
         });
@@ -536,7 +530,7 @@ public class DataMonitor extends JFrame {
 
     public DataMonitor() {
         setLayout(new BorderLayout());
-        initD();
+        initDataMonitor();
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -560,7 +554,7 @@ public class DataMonitor extends JFrame {
                 dm.clearData();
                 dataStore.clear();
                 sharedData.clearSequence();
-                iii = 0;
+                nrOfMsgs = 0;
             }
         });
 
