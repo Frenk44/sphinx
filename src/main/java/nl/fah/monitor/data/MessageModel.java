@@ -7,8 +7,8 @@ public class MessageModel extends AbstractTableModel {
 
     String[] columnNames = {"received",
             "name",
-            "type",
-            "key"};
+            "address",
+            "interface"};
 
     protected Vector listData = new Vector();
 

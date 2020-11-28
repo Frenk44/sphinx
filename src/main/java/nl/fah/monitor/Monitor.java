@@ -545,7 +545,7 @@ public class Monitor extends JFrame {
 
                             break;
                         }
-                        update(socket);
+                        update(socket, ni.getName(), multicast, port);
                         logger.debug("sleep");
                         Thread.sleep(10);
                     }
@@ -554,7 +554,7 @@ public class Monitor extends JFrame {
 
         }
 
-        private void update(MulticastSocket socket) {
+        private void update(MulticastSocket socket, String displayName, String mc_addres, int port) {
             boolean TimeOut = false;
             byte[] buf = new byte[10*1024];
             packet = new DatagramPacket(buf, buf.length);
@@ -575,25 +575,19 @@ public class Monitor extends JFrame {
             }
 
             if (!TimeOut) {
-
                 java.util.Date date = new java.util.Date();
                 InetAddress address = packet.getAddress();
                 logger.info("address = " + address.getHostAddress());
-                int port = packet.getPort();
-                packet = new DatagramPacket(buf, buf.length, address, port);
+                int lport = packet.getPort();
+                packet = new DatagramPacket(buf, buf.length, address, lport);
                 logger.info("call packet.getData() " +  packet.getLength());
                 String received = new String(packet.getData(),0 , packet.getLength());
                 logger.info(packet.getAddress().getHostName() + " sends\n" + received);
-                updateGui(date, received);
-
-
-            }
-            else{
-                // time out
+                updateGui(date, received, displayName, mc_addres, lport);
             }
         }
 
-        private void updateGui(Date date, String received) {
+        private void updateGui(Date date, String received, String displayName , String mc_addres, int port) {
             // do some XML parsing
             DocumentBuilderFactory dbf =
                     DocumentBuilderFactory.newInstance();
@@ -688,8 +682,8 @@ public class Monitor extends JFrame {
                 String timeString = (new Timestamp(date.getTime())).toString();
                 v.add(timeString);
                 v.add(new String(dataName));
-                v.add(new String(dataType));
-                v.add(new String(dataKey));
+                v.add(new String(mc_addres + ":" + port));
+                v.add(new String(displayName));
 
                 v.add(new String(data));
                 tableData.addText(v);
