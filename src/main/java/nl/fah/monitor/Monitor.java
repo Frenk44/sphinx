@@ -183,8 +183,8 @@ public class Monitor extends JFrame {
     boolean pause = true;
     String multicast = "239.0.0.1";
     int port = 6001;
-    String multicastStim = "239.0.0.2";
-    int portStim = 2121;
+    String multicastStim = "239.0.0.1";
+    int portStim = 6001;
 
     Thread inputThread1 = new Thread(new InputProcess( "input-thread-1",  multicast, port));
 
@@ -1086,7 +1086,6 @@ public class Monitor extends JFrame {
             try {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 if (networkInterface.isUp() && (networkInterface.supportsMulticast() || networkInterface.isLoopback())) nrOfInterFaces++;
-                interfaces.nextElement();                
             } catch (SocketException e) {
                 e.printStackTrace();
             }
