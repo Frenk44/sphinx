@@ -220,6 +220,7 @@ public class Monitor extends JFrame {
             return false;
         }
     }
+
     public void initDataList(){
         logger.info("initDataList ");
         Properties prop = new Properties();
@@ -251,7 +252,6 @@ public class Monitor extends JFrame {
 
         String FullPath = java.nio.file.Paths.get(myURI).toFile().toString();
         logger.info("FullPath:" + FullPath);
-       // String path = new File(FullPath).getParent() + "\\templates\\model1";
         String path = new File(FullPath).getParent() + "/templates/model1";
         logger.info("scanning directory:" + path);
 
@@ -283,21 +283,17 @@ public class Monitor extends JFrame {
         dataKey.setEditable(false);
         dataType = new JComboBox(new String[]{Types.MSG_TYPE_EVENT,Types.MSG_TYPE_CONTEXT,Types.MSG_TYPE_PERSISTENT});
         dataType.addActionListener(
-                new ActionListener() {
+                e -> {
+                    JComboBox cb = (JComboBox) e.getSource();
+                    String dataTypeString = (String) cb.getSelectedItem();
+                    logger.debug("dataType:" + dataTypeString);
 
-                    public void actionPerformed(ActionEvent e) {
-                        JComboBox cb = (JComboBox) e.getSource();
-                        String dataTypeString = (String) cb.getSelectedItem();
-                        logger.debug("dataType:" + dataTypeString);
-
-                        if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
-                            dataKey.setText("");
-                            dataKey.setEditable(false);
-                        }
-                        else dataKey.setEditable(true);
+                    if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
+                        dataKey.setText("");
+                        dataKey.setEditable(false);
                     }
-
-                } );
+                    else dataKey.setEditable(true);
+                });
 
         dataList = new JComboBox(dataListNames){
             // on select of dataname, fill the table
@@ -320,7 +316,6 @@ public class Monitor extends JFrame {
                 } catch (URISyntaxException e1)
                 {}
 
-                //String FullPath =  "/Users/fhaul/work/monitor-gezinsman/test/templates/model1/"; // TODO
                 String FullPath = java.nio.file.Paths.get(myURI).toFile().toString();
                 String path = new File(FullPath).getParent();
 
@@ -381,27 +376,27 @@ public class Monitor extends JFrame {
 
                 tableMessageData.clearData();
                 Vector v = new Vector();
-                v.add(new String("MESSAGE"));
-                v.add(new String("TEXT"));
-                v.add(new String(cmbType));
+                v.add("MESSAGE");
+                v.add("TEXT");
+                v.add(cmbType);
                 tableMessageData.addText(v);
 
                 v = new Vector();
-                v.add(new String("TYPE"));
-                v.add(new String("TEXT"));
-                v.add(new String("EVENT"));
+                v.add("TYPE");
+                v.add("TEXT");
+                v.add("EVENT");
                 tableMessageData.addText(v);
 
                 v = new Vector();
-                v.add(new String("TIME"));
-                v.add(new String("TEXT"));
-                v.add(new String("253426356"));
+                v.add("TIME");
+                v.add("TEXT");
+                v.add(("253426356"));
                 tableMessageData.addText(v);
 
                 v = new Vector();
-                v.add(new String("KEY"));
-                v.add(new String("TEXT"));
-                v.add(new String(""));
+                v.add("KEY");
+                v.add("TEXT");
+                v.add("");
                 tableMessageData.addText(v);
 
                 enums.clear();
@@ -419,8 +414,8 @@ public class Monitor extends JFrame {
                         }
 
                         v = new Vector();
-                        v.add(new String(name));
-                        v.add(new String(type));
+                        v.add(name);
+                        v.add(type);
                         v.add(new String());
 
                         tableMessageData.addText(v);
@@ -489,9 +484,7 @@ public class Monitor extends JFrame {
 
             InetAddress group = null;
             MulticastSocket socket = null;
-
             NetworkInterface ni = null;
-
 
             // outerloop
             while(true) {
@@ -551,7 +544,6 @@ public class Monitor extends JFrame {
                     }
                 } catch (InterruptedException | SocketException e) { e.printStackTrace();}
             }
-
         }
 
         private void update(MulticastSocket socket, String displayName, String mc_addres, int port) {
@@ -564,7 +556,6 @@ public class Monitor extends JFrame {
                 socket.setSoTimeout(10);
                 logger.debug("call socket.receive");
                 socket.receive(packet);
-
 
                 logger.info("data received");
             } catch (SocketTimeoutException e) {
@@ -681,26 +672,24 @@ public class Monitor extends JFrame {
                 Vector v = new Vector();
                 String timeString = (new Timestamp(date.getTime())).toString();
                 v.add(timeString);
-                v.add(new String(dataName));
-                v.add(new String(mc_addres + ":" + port));
-                v.add(new String(displayName));
+                v.add(dataName);
+                v.add(mc_addres + ":" + port);
+                v.add(displayName);
 
-                v.add(new String(data));
+                v.add(data);
                 tableData.addText(v);
 
                 String uniqueId = timeString;
-                buffer.put(new String(uniqueId), new String(received));
+                buffer.put(uniqueId, received);
                 nrOfLogs++;
                 logger.debug("added " + uniqueId + " to buffer, size=" + buffer.size());
 
                 // add last received message to the datamonitor table
-
                 UpdateTable(received);
 
                 dataNrOfItems++;
 
                 dataLogger.log(packet.getAddress().getHostName(), uniqueId, dataName, dataType, data, dataNrOfItems);
-
 
             }
             JScrollBar vertical = tableMessageScrollPane.getVerticalScrollBar();
@@ -708,11 +697,7 @@ public class Monitor extends JFrame {
             logger.debug("data logger size =" + dataLogger.getSize());
             vertical.setValue(vertical.getMaximum() - 1);
 
-            EventQueue.invokeLater(new Runnable() {
-                public void run() {
-                    repaint();
-                }
-            });
+            EventQueue.invokeLater(() -> repaint());
         }
     }
 
@@ -720,7 +705,7 @@ public class Monitor extends JFrame {
         // do some XML parsing
         DocumentBuilderFactory dbf =
                 DocumentBuilderFactory.newInstance();
-        DocumentBuilder db = null;
+        DocumentBuilder db;
         Document doc = null;
         InputSource is = new InputSource();
         is.setCharacterStream(new StringReader(received.trim()));
@@ -729,12 +714,10 @@ public class Monitor extends JFrame {
         Validator.ValidateSource(received.trim(), "data.xsd", m);
         logger.debug(m.toString());
 
-        String data;
         String dataName;
         String dataType;
         String dataKey = "NOT SET";
-        String dataId = "NOT SET";
-
+        String dataId;
 
         try {
             db = dbf.newDocumentBuilder();
@@ -763,26 +746,26 @@ public class Monitor extends JFrame {
                                 dataName = nnn.getTextContent();
 
                                 Vector v = new Vector();
-                                v.add(new String("MESSAGE"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataName));
+                                v.add("MESSAGE");
+                                v.add("TEXT");
+                                v.add(dataName);
                                 tableMessageData.addText(v);
 
                             } else if (nnn.getNodeName().contentEquals(Types.DATA_ID)) {
                                 dataId = nnn.getTextContent();
                                 Vector v = new Vector();
-                                v.add(new String("ID"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataId));
+                                v.add("ID");
+                                v.add("TEXT");
+                                v.add(dataId);
                                 tableMessageData.addText(v);
                             } else if (nnn.getNodeName().contentEquals(Types.DATA_KEY)) {
                                 dataKey = nnn.getTextContent();
                             } else if (nnn.getNodeName().contentEquals(Types.DATA_TYPE)) {
                                 dataType = nnn.getTextContent();
                                 Vector v = new Vector();
-                                v.add(new String("TYPE"));
-                                v.add(new String("TEXT"));
-                                v.add(new String(dataType));
+                                v.add("TYPE");
+                                v.add("TEXT");
+                                v.add(dataType);
                                 tableMessageData.addText(v);
                             }
                         }
@@ -798,41 +781,40 @@ public class Monitor extends JFrame {
                     logger.debug(ts.toString());
 
                     Vector v2 = new Vector();
-                    v2.add(new String("TIME"));
-                    v2.add(new String("TEXT"));
-                    v2.add(new String(ts.toString()));
+                    v2.add("TIME");
+                    v2.add("TEXT");
+                    v2.add(ts.toString());
                     tableMessageData.addText(v2);
 
                     if (dataKey != null && !dataKey.isEmpty()) {
                         Vector v3 = new Vector();
-                        v3.add(new String("KEY"));
-                        v3.add(new String("TEXT"));
-                        v3.add(new String(dataKey));
+                        v3.add("KEY");
+                        v3.add("TEXT");
+                        v3.add(dataKey);
                         tableMessageData.addText(v3);
                     }
 
                     logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
                     for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
                         if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
-                            NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+                            NamedNodeMap namedItem = payload.getChildNodes().item(k).getAttributes();
 
-                            logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
-                                    "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
-                                    "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                            logger.debug(namedItem.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                    "  value: " + namedItem.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                    "  type: " + namedItem.getNamedItem(Types.DATA_TYPE).getNodeValue());
 
                             Vector v = new Vector();
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
-                            v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                            v.add(namedItem.getNamedItem(Types.DATA_NAME).getNodeValue());
+                            v.add(namedItem.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                            v.add(namedItem.getNamedItem(Types.DATA_VALUE).getNodeValue());
                             tableMessageData.addText(v);
 
-                            if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
-                                logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                            if (namedItem.getNamedItem(Types.DATA_RANGE) != null)
+                                logger.debug("  range: " + namedItem.getNamedItem(Types.DATA_RANGE).getNodeValue());
                         }
                     }
                 }
             }
-
         } else {
             logger.info("nodes==null or empty");
         }
@@ -848,8 +830,6 @@ public class Monitor extends JFrame {
     }
 
     public Monitor() {
-        //setLayout(new BorderLayout());
-
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -911,45 +891,14 @@ public class Monitor extends JFrame {
                 } catch (IOException e7) {
                     e7.printStackTrace();
                 }
-
-
-
-
-
-
-
-/*
-
-                Enumeration<NetworkInterface> interfaces = null;
-                try {
-                    interfaces = NetworkInterface.getNetworkInterfaces();
-                } catch (SocketException e) {
-                    e.printStackTrace();
-                }
-
-                while (interfaces.hasMoreElements())
-                {
-                    NetworkInterface networkInterface = interfaces.nextElement();
-                    if(networkInterface.getName().contentEquals("enp1s0"))
-                    {
-                        ni = networkInterface;
-                    }
-                    logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
-                }
-
- */
-
             }
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 logger.debug("send data");
-
-                String sel = (String)dataType.getSelectedItem();
-
                 dataKey.setText(tableMessageData.getValueAt(3,2).toString());
 
-                String msg = (String) " <?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+                String msg = " <?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
                         "<data>\n" +
                         "    <header>\n" +
                         "        <name>" + tableMessageData.getValueAt(0,2).toString() + "</name>\n" +
@@ -1049,8 +998,6 @@ public class Monitor extends JFrame {
 
         initD();
 
-
-
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
@@ -1063,10 +1010,7 @@ public class Monitor extends JFrame {
             logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
         }
 
-
-
         logger.info("dataList: ");
-
         logger.info("dataList items:" + dataList.getItemCount());
         StimControlPanel.add(dataList);
 
@@ -1198,8 +1142,6 @@ public class Monitor extends JFrame {
             }
         });
 
-
-
         StimControlPanel.add(dataList);
         StimControlPanel.add(ipTextFieldStim);
         StimControlPanel.add(portTextFieldStim);
@@ -1214,7 +1156,6 @@ public class Monitor extends JFrame {
         infoLabel = new Label();
         infoLabel.setText("idle");
 
-
         jifMonAndStim.add(StimPanel, BorderLayout.CENTER);
         jifMonAndStim.add(infoLabel, BorderLayout.SOUTH);
         jifMonAndStim.show();
@@ -1228,8 +1169,5 @@ public class Monitor extends JFrame {
         ImageIcon icon = new ImageIcon(this.getClass().getResource("/images/TreasuresEgypt_Sphinx-icon.png"),
                 "a pretty but meaningless splat");
         this.setIconImage(icon.getImage());
-
-
     }
-
 }
