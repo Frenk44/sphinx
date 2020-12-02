@@ -32,47 +32,9 @@
             <version>1.7.28</version>
         </dependency>
     </dependencies>
+    
     <build>
-        
-
-    <plugins>
-        <!--
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-                <execution>
-                    <id>copy-dependencies</id>
-                    <phase>prepare-package</phase>
-                    <goals>
-                        <goal>
-                            copy-dependencies
-                        </goal>
-                    </goals>
-                    <configuration>
-                        <outputDirectory>
-                            ${project.build.directory}/libs
-                        </outputDirectory>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
-
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-            <configuration>
-                <archive>
-                    <manifest>
-                        <addClasspath>true</addClasspath>
-                        <classpathPrefix>libs/</classpathPrefix>
-                        <mainClass>nl.fah.monitor.MonitorTool</mainClass>
-                    </manifest>
-                </archive>
-            </configuration>
-        </plugin>
--->
-
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -99,7 +61,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-    </plugins>
+        </plugins>
     </build>
 </project>
