@@ -5,6 +5,7 @@ import nl.fah.common.Utils;
 import nl.fah.logger.DataLogger;
 import nl.fah.logger.DataLoggerImpl;
 import nl.fah.monitor.data.MessageModel;
+import nl.fah.monitor.message.MessageMonitor;
 import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1165,9 +1166,46 @@ public class Monitor extends JFrame {
         tabbedPane.addTab("Monitor", jifMonAndStim);
 
         add(tabbedPane);
+        //create a menu bar
+        final JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenu helpMenu = new JMenu("Help");
 
+        JMenuItem newMenuItem = new JMenuItem("New");
+        newMenuItem.setActionCommand("New");
+        newMenuItem.setToolTipText("New window");
+        newMenuItem.addActionListener(event -> {
+            System.out.println("add new tab or window");
+            Monitor monitor = new Monitor();
+            monitor.setSize(478,600);
+            monitor.setVisible(true);
+            monitor.setPriority(Thread.MAX_PRIORITY);
+            monitor.start();
+            monitor.setTitle("SPHINX Tool");
+            monitor.setLocation(this.getLocation().x + 40, this.getLocation().y + 40);
+        });
+
+        JMenuItem exitMenuItem = new JMenuItem("Exit");
+        exitMenuItem.setActionCommand("Exit");
+        exitMenuItem.setToolTipText("Exit application");
+        exitMenuItem.addActionListener(event -> { System.exit(1); });
+
+        fileMenu.add(newMenuItem);
+        fileMenu.add(exitMenuItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(helpMenu);
+
+        setJMenuBar(menuBar);
         ImageIcon icon = new ImageIcon(this.getClass().getResource("/images/TreasuresEgypt_Sphinx-icon.png"),
                 "a pretty but meaningless splat");
         this.setIconImage(icon.getImage());
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                dispose();
+            }
+        });
     }
 }
