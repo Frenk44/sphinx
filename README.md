@@ -1,6 +1,6 @@
 SPHINX Tool
 ======
-Sphinx stands for Software Paradigm for Hosting Interconnecting Nodes using XML.
+Sphinx stands for System Paradigm for Hosting Interconnecting Nodes using XML.
 It is a design pattern for a run-time infrastructure for the distribution, monitoring and stimulating of XML data over UDP multicast networks. To facilitate this, the SPHINX Tool has been developed.<br>
 <br>
 An UDP multicast network enables the developer to use multiple interacting programs to interact during execution time. This approach has the advantage to develop separate smaller interacting programs to achieve a high complexity rather than one large program. A system, which is broken up into multiple smaller programs are easier to maintain than one large complex program.<br> With UDP multicast, we can assign an executable to an UDP multicast address to listen to. And each executable is able to write to any UDP multicast address. With this distributed architecture, designers are able to break up a large executable into a set of smaller executables. The Tool will help the developer to test these executables individually and integrate them together. These executables can run on any hardware in the system and can be written in any programming language. Since the data is described by ASCII XML, there is no machine dependencies like bigendian, little endian conversions.  
