@@ -15,7 +15,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-
+import java.util.Random;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -35,10 +35,13 @@ import java.io.StringReader;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.io.FileInputStream;
+
+import static java.lang.System.exit;
 
 public class Monitor extends JFrame {
 
@@ -50,8 +53,12 @@ public class Monitor extends JFrame {
     JComboBox networkList;
     JComboBox networkSendList;
 
+    HashMap<String, Color> colorMap;
+    Random rand = new Random();
+
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
     {
+
     };
 
     String[] getValues(int row, int column){
@@ -114,6 +121,10 @@ public class Monitor extends JFrame {
 
 
     void initD(){
+
+        // init colorMap
+        colorMap = new HashMap<>();
+
         tableMessage.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
         {
             @Override
@@ -134,8 +145,30 @@ public class Monitor extends JFrame {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
             {
+                String msgName = tableData.getValueAt(row, 1).toString();
+                logger.debug("message = " + msgName);
+
+                Color bcolor = null;
+
+                for (String key : colorMap.keySet()) {
+                    if(msgName.contentEquals(key))
+                    {
+                        bcolor = colorMap.get(msgName);
+                    }
+                }
+
+                if(bcolor == null)
+                {
+                    final float hue = rand.nextFloat();
+                    // Saturation between 0.1 and 0.3
+                    final float saturation = (rand.nextInt(2000) + 1000) / 10000f;
+                    final float luminance = 0.9f;
+                    final Color color = Color.getHSBColor(hue, saturation, luminance);
+                    colorMap.put(msgName, color);
+                }
+
                 final Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                c.setBackground(row % 2 == 0 ? new Color(230,240,230)  : Color.WHITE);
+                c.setBackground(  bcolor );
                 return c;
             }
         });
@@ -150,12 +183,9 @@ public class Monitor extends JFrame {
                 if(selectedRow>=0)
                 {
                     String key = table.getValueAt(selectedRow, 0).toString();
-                    System.out.println(key);
-
                     String xml = dataLogger.getPayLoad(key);
                     UpdateTable(xml);
                 }
-
             }
         });
 
@@ -223,7 +253,7 @@ public class Monitor extends JFrame {
     }
 
     public void initDataList(){
-        logger.info("initDataList ");
+        logger.debug("initDataList ");
         Properties prop = new Properties();
         try{
             InputStream is = new FileInputStream("sphinx.properties");
@@ -238,7 +268,7 @@ public class Monitor extends JFrame {
                 logger.info("empty file or not existing: " + "sphinx.properties");
             }
         } catch (IOException e) {
-            System.exit(0);
+            exit(0);
             e.printStackTrace();
         }
 
@@ -410,7 +440,7 @@ public class Monitor extends JFrame {
 
                         if (type.contentEquals("enum")) {
                             String range = payloadnode.getChildNodes().item(i).getAttributes().getNamedItem("range").getTextContent();
-                            logger.info(name + " has range [" + range + "] put at location:" + i);
+                            logger.debug(name + " has range [" + range + "] put at location:" + i);
                             enums.put(j, range);
                         }
 
@@ -558,7 +588,7 @@ public class Monitor extends JFrame {
                 logger.debug("call socket.receive");
                 socket.receive(packet);
 
-                logger.info("data received");
+                logger.debug("data received");
             } catch (SocketTimeoutException e) {
                 TimeOut = true;
                 logger.debug("socket receive timeout");
@@ -569,13 +599,17 @@ public class Monitor extends JFrame {
             if (!TimeOut) {
                 java.util.Date date = new java.util.Date();
                 InetAddress address = packet.getAddress();
-                logger.info("address = " + address.getHostAddress());
+                logger.debug("address = " + address.getHostAddress());
                 int lport = packet.getPort();
                 packet = new DatagramPacket(buf, buf.length, address, lport);
-                logger.info("call packet.getData() " +  packet.getLength());
+                logger.debug("call packet.getData() " +  packet.getLength());
                 String received = new String(packet.getData(),0 , packet.getLength());
-                logger.info(packet.getAddress().getHostName() + " sends\n" + received);
-                updateGui(date, received, displayName, mc_addres, lport);
+                if( (received != null) && (!received.trim().isEmpty()))
+                {
+                    logger.debug(packet.getAddress().getHostName() + " sends [" + received + "]");
+                    updateGui(date, received, displayName, mc_addres, lport);
+                }
+
             }
         }
 
@@ -896,38 +930,41 @@ public class Monitor extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                logger.debug("send data");
-                dataKey.setText(tableMessageData.getValueAt(3,2).toString());
+                if(tableMessageData.getRowCount()>0)
+                {
+                    logger.debug("send data");
+                    dataKey.setText(tableMessageData.getValueAt(3,2).toString());
 
-                String msg = " <?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
-                        "<data>\n" +
-                        "    <header>\n" +
-                        "        <name>" + tableMessageData.getValueAt(0,2).toString() + "</name>\n" +
-                        "        <type>" + tableMessageData.getValueAt(1,2).toString() + "</type>\n";
-                if (!tableMessageData.getValueAt(1,2).toString().contentEquals("EVENT")) msg += "        <key>" + tableMessageData.getValueAt(3,2).toString() + "</key>\n";
-                msg += "    </header>\n";
+                    String msg = " <?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+                            "<data>\n" +
+                            "    <header>\n" +
+                            "        <name>" + tableMessageData.getValueAt(0,2).toString() + "</name>\n" +
+                            "        <type>" + tableMessageData.getValueAt(1,2).toString() + "</type>\n";
+                    if (!tableMessageData.getValueAt(1,2).toString().contentEquals("EVENT")) msg += "        <key>" + tableMessageData.getValueAt(3,2).toString() + "</key>\n";
+                    msg += "    </header>\n";
 
-                String payload = "    <payload>\n";
-                for (int i=4;i<tableMessageData.getRowCount();i++){
-                    payload += "        <item name='" + tableMessageData.getValueAt(i,0).toString()
-                            + "' value='"+ tableMessageData.getValueAt(i,2).toString()
-                            + "' type='"+ tableMessageData.getValueAt(i,1).toString()
-                            + "' />\n";
+                    String payload = "    <payload>\n";
+                    for (int i=4;i<tableMessageData.getRowCount();i++){
+                        payload += "        <item name='" + tableMessageData.getValueAt(i,0).toString()
+                                + "' value='"+ tableMessageData.getValueAt(i,2).toString()
+                                + "' type='"+ tableMessageData.getValueAt(i,1).toString()
+                                + "' />\n";
+                    }
+                    payload +=   "    </payload>\n";
+
+                    msg += payload;
+                    msg += "</data>\n";
+
+                    logger.debug(msg);
+
+                    multicast = ipTextFieldStim.getText();
+                    logger.debug("multicast=" + multicast);
+                    logger.debug("port=" + portTextFieldStim.getText());
+
+                    port =  Integer.parseInt( portTextFieldStim.getText().trim() );
+                    sendData(msg, multicast, port, networkSendList.getSelectedItem().toString());
+                    logger.debug("send data to " + multicast + ":" + port + " network:" + networkSendList.getSelectedItem().toString());
                 }
-                payload +=   "    </payload>\n";
-
-                msg += payload;
-                msg += "</data>\n";
-
-                logger.debug(msg);
-
-                multicast = ipTextFieldStim.getText();
-                logger.debug("multicast=" + multicast);
-                logger.debug("port=" + portTextFieldStim.getText());
-
-                port =  Integer.parseInt( portTextFieldStim.getText().trim() );
-                sendData(msg, multicast, port, networkSendList.getSelectedItem().toString());
-                logger.info("send data to " + multicast + ":" + port + " network:" + networkSendList.getSelectedItem().toString());
             }
         });
 
@@ -1175,7 +1212,6 @@ public class Monitor extends JFrame {
         newMenuItem.setActionCommand("New");
         newMenuItem.setToolTipText("New window");
         newMenuItem.addActionListener(event -> {
-            System.out.println("add new tab or window");
             Monitor monitor = new Monitor();
             monitor.setSize(478,600);
             monitor.setVisible(true);
@@ -1188,7 +1224,7 @@ public class Monitor extends JFrame {
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setActionCommand("Exit");
         exitMenuItem.setToolTipText("Exit application");
-        exitMenuItem.addActionListener(event -> { System.exit(1); });
+        exitMenuItem.addActionListener(event -> { exit(1); });
 
         fileMenu.add(newMenuItem);
         fileMenu.add(exitMenuItem);
@@ -1204,7 +1240,8 @@ public class Monitor extends JFrame {
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                dispose();
+                logger.info("close sphinx");
+                exit(0);
             }
         });
     }
