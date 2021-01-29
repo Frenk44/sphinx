@@ -5,7 +5,6 @@ import nl.fah.common.Utils;
 import nl.fah.logger.DataLogger;
 import nl.fah.logger.DataLoggerImpl;
 import nl.fah.monitor.data.MessageModel;
-import nl.fah.monitor.message.MessageMonitor;
 import nl.fah.stimulator.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +14,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import sun.java2d.loops.ProcessPath;
+
 import java.util.Random;
 import javax.swing.*;
 import javax.swing.event.*;
@@ -35,7 +36,6 @@ import java.io.StringReader;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -64,7 +64,7 @@ public class Monitor extends JFrame {
     String[] getValues(int row, int column){
 
         String[] items3 = null;
-        Object e = enums.get(row-4); //NOTE: 1st 4 ROWS are defined by the header!!!! TODO: improve this hack!
+        Object e = enums.get(row-4); //NOTE: 1st 4 ROWS are defined by the header!!!!
         if(e != null) {
             items3 = e.toString().split(",");
         }
@@ -910,7 +910,7 @@ public class Monitor extends JFrame {
 
                 try {
                     s = new MulticastSocket(port);
-                    ni = NetworkInterface.getByName(network); // TODO: make all interfaces available on GUI
+                    ni = NetworkInterface.getByName(network);
 
                     s.setNetworkInterface(ni);
                     s.joinGroup(group);
@@ -1180,6 +1180,10 @@ public class Monitor extends JFrame {
             }
         });
 
+        ImageIcon icon = new ImageIcon(this.getClass().getResource("/images/TreasuresEgypt_Sphinx-icon.png"),
+                "sphinx logo");
+        this.setIconImage(icon.getImage());
+
         StimControlPanel.add(dataList);
         StimControlPanel.add(ipTextFieldStim);
         StimControlPanel.add(portTextFieldStim);
@@ -1221,21 +1225,44 @@ public class Monitor extends JFrame {
             monitor.setLocation(this.getLocation().x + 40, this.getLocation().y + 40);
         });
 
+        JMenuItem closeMenuItem = new JMenuItem("Close");
+        closeMenuItem.setActionCommand("Close");
+        closeMenuItem.setToolTipText("Close window");
+        closeMenuItem.addActionListener(event -> { this.dispose(); });
+
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setActionCommand("Exit");
         exitMenuItem.setToolTipText("Exit application");
         exitMenuItem.addActionListener(event -> { exit(1); });
 
         fileMenu.add(newMenuItem);
+        fileMenu.add(closeMenuItem);
         fileMenu.add(exitMenuItem);
+
+        JMenuItem aboutMenuItem = new JMenuItem("About");
+        aboutMenuItem.addActionListener(event -> {
+            JEditorPane ep = new JEditorPane("text/html",
+                    "<html><body><p>Sphinx Tool is developed by Gezinsman.nl <br/>\n" +
+                    "to help engineers for testing and debugging <br/>\n" +
+                    "software applications in distributed systems.</p> <br/>\n" +
+                            "<p>Checkout https://gezinsman.nl to find more information.</p> <br/>\n" +
+                    "</body></html>");
+            ep.setEditable(false);
+            ep.setBackground(this.getBackground());
+
+            JOptionPane.showMessageDialog(this,
+                    ep,
+                    "About Sphinx",
+                    JOptionPane.INFORMATION_MESSAGE,
+                    icon);
+        });
+        helpMenu.add(aboutMenuItem);
 
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
 
         setJMenuBar(menuBar);
-        ImageIcon icon = new ImageIcon(this.getClass().getResource("/images/TreasuresEgypt_Sphinx-icon.png"),
-                "a pretty but meaningless splat");
-        this.setIconImage(icon.getImage());
+
 
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
