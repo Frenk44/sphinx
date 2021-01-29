@@ -1245,7 +1245,8 @@ public class Monitor extends JFrame {
                     "<html><body><p>Sphinx Tool is developed by Gezinsman.nl <br/>\n" +
                     "to help engineers for testing and debugging <br/>\n" +
                     "software applications in distributed systems.</p> <br/>\n" +
-                            "<p>Checkout https://gezinsman.nl to find more information.</p> <br/>\n" +
+                            "<p>Checkout https://github.com/Frenk44/sphinx <br/>\n" +
+                            "to get more information.</p> <br/>\n" +
                     "</body></html>");
             ep.setEditable(false);
             ep.setBackground(this.getBackground());
