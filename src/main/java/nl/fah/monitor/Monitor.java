@@ -14,7 +14,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import sun.java2d.loops.ProcessPath;
 
 import java.util.Random;
 import javax.swing.*;
@@ -212,12 +211,12 @@ public class Monitor extends JFrame {
     JScrollPane tableMessageScrollPane;
 
     boolean pause = true;
-    String multicast = "239.0.0.1";
-    int port = 6001;
-    String multicastStim = "239.0.0.1";
-    int portStim = 6001;
+    String multicast_read = "239.10.20.1";
+    int port_read = 6011;
+    String multicast_write = "239.30.10.1";
+    int port_write = 6001;
 
-    Thread inputThread1 = new Thread(new InputProcess( "input-thread-1",  multicast, port));
+    Thread inputThread1;
 
     int nrOfLogs = 0;
     Logger logger = LoggerFactory.getLogger(Monitor.class);
@@ -253,16 +252,24 @@ public class Monitor extends JFrame {
     }
 
     public void initDataList(){
-        logger.debug("initDataList ");
+        logger.debug("initDataList and create inputThread");
         Properties prop = new Properties();
         try{
             InputStream is = new FileInputStream("sphinx.properties");
             if(is != null && is.available()>0) {
                 prop.load(is);
-                multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
-                port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
-                logger.info("sphinx.context.daemon.ip=" + prop.getProperty("sphinx.context.daemon.ip"));
+                multicast_read = prop.getProperty(Types.CONFIG_READ_IP);
+                port_read = Integer.parseInt(prop.getProperty(Types.CONFIG_READ_PORT));
+                logger.info(Types.CONFIG_READ_IP + "=" + multicast_read);
+                logger.info(Types.CONFIG_READ_PORT + "=" + port_read);
 
+                multicast_write = prop.getProperty(Types.CONFIG_WRITE_IP);
+                port_write = Integer.parseInt(prop.getProperty(Types.CONFIG_WRITE_PORT));
+                logger.info(Types.CONFIG_WRITE_IP + "=" + multicast_write);
+                logger.info(Types.CONFIG_WRITE_PORT + "=" + port_write);
+
+                inputThread1 = new Thread(new InputProcess( "input-thread-1", multicast_read, port_read));
+                logger.info("inputThread1 created");
             }
             else{
                 logger.info("empty file or not existing: " + "sphinx.properties");
@@ -272,8 +279,7 @@ public class Monitor extends JFrame {
             e.printStackTrace();
         }
 
-        logger.info("multicast=" + multicast);
-        logger.info("port=" + port);
+
         URL myURL = getClass().getProtectionDomain().getCodeSource().getLocation();
         java.net.URI myURI = null;
         try {
@@ -529,13 +535,13 @@ public class Monitor extends JFrame {
                                 e.printStackTrace();
                             }
 
-                            multicast = ipTextField.getText();
+                            multicast_read = ipTextField.getText();
                             port = Integer.parseInt( portTextField.getText() );
 
                             try {
                                 socket = new MulticastSocket(port);
                                 socket.setReceiveBufferSize(10*1024);
-                                group = InetAddress.getByName(multicast);
+                                group = InetAddress.getByName(multicast_read);
                                 socket.setNetworkInterface(ni);
 
                             } catch (UnknownHostException e) {
@@ -555,7 +561,7 @@ public class Monitor extends JFrame {
                         else Thread.sleep(250);
                     }
 
-                    logger.info("START MONITORING ON " + multicast + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
+                    logger.info("START MONITORING ON " + multicast_read + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
 
                     //innerloop
                     while(true) {
@@ -565,11 +571,11 @@ public class Monitor extends JFrame {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            logger.info("STOP MONITORING ON " + multicast + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
+                            logger.info("STOP MONITORING ON " + multicast_read + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
 
                             break;
                         }
-                        update(socket, ni.getName(), multicast, port);
+                        update(socket, ni.getName(), multicast_read, port);
                         logger.debug("sleep");
                         Thread.sleep(10);
                     }
@@ -957,82 +963,82 @@ public class Monitor extends JFrame {
 
                     logger.debug(msg);
 
-                    multicast = ipTextFieldStim.getText();
-                    logger.debug("multicast=" + multicast);
+                    multicast_read = ipTextFieldStim.getText();
+                    logger.debug("multicast=" + multicast_read);
                     logger.debug("port=" + portTextFieldStim.getText());
 
-                    port =  Integer.parseInt( portTextFieldStim.getText().trim() );
-                    sendData(msg, multicast, port, networkSendList.getSelectedItem().toString());
-                    logger.debug("send data to " + multicast + ":" + port + " network:" + networkSendList.getSelectedItem().toString());
+                    port_read =  Integer.parseInt( portTextFieldStim.getText().trim() );
+                    sendData(msg, multicast_read, port_read, networkSendList.getSelectedItem().toString());
+                    logger.debug("send data to " + multicast_read + ":" + port_read + " network:" + networkSendList.getSelectedItem().toString());
                 }
             }
         });
 
-        ipTextField = new JTextField(multicast, 6);
-        ipTextField.setText(multicast);
+        initDataList();
+
+        ipTextField = new JTextField(multicast_read, 6);
+        ipTextField.setText(multicast_read);
         ipTextField.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
-                multicast = ipTextField.getText();
-                Boolean v = validMulticast(multicast);
-                if (!validMulticast(multicast)) ipTextField.setBackground(Color.red);
+                multicast_read = ipTextField.getText();
+                Boolean v = validMulticast(multicast_read);
+                if (!validMulticast(multicast_read)) ipTextField.setBackground(Color.red);
                 else ipTextField.setBackground(Color.white);
-                logger.info("multicast address has changed: " + multicast);
+                logger.info("multicast address has changed: " + multicast_read);
             }
             public void removeUpdate(DocumentEvent e) {
-                multicast = ipTextField.getText();
+                multicast_read = ipTextField.getText();
 
-                Boolean v = validMulticast(multicast);
-                if (!validMulticast(multicast)) ipTextField.setBackground(Color.red);
+                Boolean v = validMulticast(multicast_read);
+                if (!validMulticast(multicast_read)) ipTextField.setBackground(Color.red);
                 else ipTextField.setBackground(Color.white);
 
-                logger.info("multicast address has changed: " + multicast + " valid="  + v);
+                logger.info("multicast address has changed: " + multicast_read + " valid="  + v);
             }
             public void insertUpdate(DocumentEvent e) {
-                multicast = ipTextField.getText();
-                Boolean v = validMulticast(multicast);
-                if (!validMulticast(multicast)) ipTextField.setBackground(Color.red);
+                multicast_read = ipTextField.getText();
+                Boolean v = validMulticast(multicast_read);
+                if (!validMulticast(multicast_read)) ipTextField.setBackground(Color.red);
                 else ipTextField.setBackground(Color.white);
-                logger.info("multicast address has changed: " + multicast);
+                logger.info("multicast address has changed: " + multicast_read);
             }
         });
 
-        portTextField = new JTextField(String.valueOf(port), 4);
+        portTextField = new JTextField(String.valueOf(port_read), 4);
         portTextField.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
                 try{
-                    port =  Integer.parseInt(portTextField.getText()) ;
+                    port_read =  Integer.parseInt(portTextField.getText()) ;
                     portTextField.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextField.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + port);
+                logger.info("port number has changed: " + port_read);
             }
             public void removeUpdate(DocumentEvent e) {
                 try{
-                    port =  Integer.parseInt(portTextField.getText()) ;
+                    port_read =  Integer.parseInt(portTextField.getText()) ;
                     portTextField.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextField.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + port);
+                logger.info("port number has changed: " + port_read);
             }
             public void insertUpdate(DocumentEvent e) {
                 try{
-                    port =  Integer.parseInt(portTextField.getText()) ;
+                    port_read =  Integer.parseInt(portTextField.getText()) ;
                     portTextField.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextField.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + port);
+                logger.info("port number has changed: " + port_read);
             }
         });
 
         Panel StimControlPanel = new Panel();
-
-        initDataList();
 
         initD();
 
@@ -1045,10 +1051,9 @@ public class Monitor extends JFrame {
         while (interfaces.hasMoreElements())
         {
             NetworkInterface networkInterface = interfaces.nextElement();
-            logger.info("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
+            logger.debug("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
         }
-
-        logger.info("dataList: ");
+        
         logger.info("dataList items:" + dataList.getItemCount());
         StimControlPanel.add(dataList);
 
@@ -1118,65 +1123,65 @@ public class Monitor extends JFrame {
         DataPanel.add(tableMessageScrollPane);
         DataPanel.add(new JScrollPane(tableMessage));
 
-        ipTextFieldStim = new JTextField(multicastStim, 6);
-        ipTextFieldStim.setText(multicastStim);
+        ipTextFieldStim = new JTextField(multicast_write, 6);
+        ipTextFieldStim.setText(multicast_write);
         ipTextFieldStim.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
-                multicastStim = ipTextFieldStim.getText();
-                Boolean v = validMulticast(multicastStim);
-                if (!validMulticast(multicastStim)) ipTextFieldStim.setBackground(Color.red);
+                multicast_write = ipTextFieldStim.getText();
+                Boolean v = validMulticast(multicast_write);
+                if (!validMulticast(multicast_write)) ipTextFieldStim.setBackground(Color.red);
                 else ipTextFieldStim.setBackground(Color.white);
-                logger.info("multicast address has changed: " + multicastStim);
+                logger.info("multicast address has changed: " + multicast_write);
             }
             public void removeUpdate(DocumentEvent e) {
-                multicastStim = ipTextFieldStim.getText();
+                multicast_write = ipTextFieldStim.getText();
 
-                Boolean v = validMulticast(multicastStim);
-                if (!validMulticast(multicastStim)) ipTextFieldStim.setBackground(Color.red);
+                Boolean v = validMulticast(multicast_write);
+                if (!validMulticast(multicast_write)) ipTextFieldStim.setBackground(Color.red);
                 else ipTextFieldStim.setBackground(Color.white);
 
-                logger.info("multicastStim address has changed: " + multicastStim + " valid="  + v);
+                logger.info("multicastStim address has changed: " + multicast_write + " valid="  + v);
             }
             public void insertUpdate(DocumentEvent e) {
-                multicastStim = ipTextFieldStim.getText();
-                Boolean v = validMulticast(multicastStim);
-                if (!validMulticast(multicastStim)) ipTextFieldStim.setBackground(Color.red);
+                multicast_write = ipTextFieldStim.getText();
+                Boolean v = validMulticast(multicast_write);
+                if (!validMulticast(multicast_write)) ipTextFieldStim.setBackground(Color.red);
                 else ipTextFieldStim.setBackground(Color.white);
-                logger.info("multicast address has changed: " + multicastStim);
+                logger.info("multicast address has changed: " + multicast_write);
             }
         });
 
-        portTextFieldStim = new JTextField(String.valueOf(portStim), 4);
+        portTextFieldStim = new JTextField(String.valueOf(port_write), 4);
         portTextFieldStim.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
                 try{
-                    port =  Integer.parseInt(portTextFieldStim.getText()) ;
+                    port_read =  Integer.parseInt(portTextFieldStim.getText()) ;
                     portTextFieldStim.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextFieldStim.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + portStim);
+                logger.info("port number has changed: " + port_write);
             }
             public void removeUpdate(DocumentEvent e) {
                 try{
-                    portStim =  Integer.parseInt(portTextFieldStim.getText()) ;
+                    port_write =  Integer.parseInt(portTextFieldStim.getText()) ;
                     portTextFieldStim.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextFieldStim.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + port);
+                logger.info("port number has changed: " + port_read);
             }
             public void insertUpdate(DocumentEvent e) {
                 try{
-                    portStim =  Integer.parseInt(portTextFieldStim.getText()) ;
+                    port_write =  Integer.parseInt(portTextFieldStim.getText()) ;
                     portTextFieldStim.setBackground(Color.white);
                 }
                 catch(NumberFormatException e1){
                     portTextFieldStim.setBackground(Color.red);
                 }
-                logger.info("port number has changed: " + port);
+                logger.info("port number has changed: " + port_read);
             }
         });
 

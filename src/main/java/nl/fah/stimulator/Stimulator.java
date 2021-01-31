@@ -124,10 +124,12 @@ public class Stimulator extends JFrame {
         try {
             if(is != null && is.available()>0) {
                 prop.load(is);
-                multicast = prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_IP);
-                logger.info("multicast=" + multicast);
-                port = Integer.parseInt(prop.getProperty(Types.CONFIG_PERSISTENCE_DAEMON_PORT));
-                logger.info("port=" + port);
+                
+                multicast = prop.getProperty(Types.CONFIG_WRITE_IP);
+                port = Integer.parseInt(prop.getProperty(Types.CONFIG_WRITE_PORT));
+                logger.info(Types.CONFIG_WRITE_IP + "=" + multicast);
+                logger.info(Types.CONFIG_WRITE_PORT + "=" + port);
+
                 modelPath = prop.getProperty(Types.CONFIG_MODEL_PATH);
                 logger.info("modelPath=" + modelPath);
             }
@@ -140,7 +142,6 @@ public class Stimulator extends JFrame {
 
         try {
             prop.load(is);
-            logger.info("sphinx.context.daemon.ip=" + prop.getProperty("sphinx.context.daemon.ip"));
         } catch (IOException e1) {
             e1.printStackTrace();
         }
