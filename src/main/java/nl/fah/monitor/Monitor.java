@@ -1053,7 +1053,7 @@ public class Monitor extends JFrame {
             NetworkInterface networkInterface = interfaces.nextElement();
             logger.debug("network interface: " + networkInterface.getName() + " displayname=" +  networkInterface.getDisplayName());
         }
-        
+
         logger.info("dataList items:" + dataList.getItemCount());
         StimControlPanel.add(dataList);
 
