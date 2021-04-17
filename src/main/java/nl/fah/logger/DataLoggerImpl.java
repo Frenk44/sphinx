@@ -84,7 +84,7 @@ public class DataLoggerImpl implements DataLogger {
 
 
     @Override
-    public void log(String sender, String key, String dataName, String dataType, String dataPayload, int nrOfItems){
+    public void log(String sender, String key, String dataName, String dataType, long tmillis, String dataPayload, int nrOfItems){
         DataItem data = new DataItem();
 
         data.dataName = dataName;

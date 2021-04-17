@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.*;
+import java.util.Date;
 
 /**
  */
@@ -175,8 +176,10 @@ public class LoggerTool extends JFrame {
                         } else {
                             logger.debug("nodes==null or empty");
                         }
-
-                        dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, data, dataNrOfItems);
+                        Date date = new Date();
+                        //This method returns the time in millis
+                        long timeMilli = date.getTime();
+                        dataLogger.log(packet.getAddress().getHostName(), dataKey, dataName, dataType, timeMilli, data, dataNrOfItems);
 
                         logger.debug("LOG: nr. of items: " + dataLogger.getSize());
                         logInfoLabel.setText("LOG: nr. of items: " + dataLogger.getSize());

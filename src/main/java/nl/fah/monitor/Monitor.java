@@ -6,6 +6,9 @@ import nl.fah.logger.DataLogger;
 import nl.fah.logger.DataLoggerImpl;
 import nl.fah.monitor.data.MessageModel;
 import nl.fah.stimulator.Validator;
+
+import org.pcap4j.core.*;
+import org.pcap4j.packet.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -15,9 +18,12 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Random;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.xml.parsers.DocumentBuilder;
@@ -54,6 +60,12 @@ public class Monitor extends JFrame {
 
     HashMap<String, Color> colorMap;
     Random rand = new Random();
+
+    public List<byte[]> packetList = new ArrayList<>();
+    public List<Long> tvalList = new ArrayList<>();
+
+    HashMap<Integer, String> dataStore = new HashMap<Integer, String>();
+    HashMap<Integer, Timestamp> dataTimeStore = new HashMap<Integer, Timestamp>();
 
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
     {
@@ -181,9 +193,14 @@ public class Monitor extends JFrame {
                 // print first column value from selected row
                 if(selectedRow>=0)
                 {
-                    String key = table.getValueAt(selectedRow, 0).toString();
+
+                 //   String key = table.getValueAt(selectedRow, 0).toString();
+                    String key = String.valueOf(selectedRow);
                     String xml = dataLogger.getPayLoad(key);
-                    UpdateTable(xml);
+                    if( (xml != null) && !xml.isEmpty()) {
+                        UpdateTable(tvalList.get(selectedRow), xml);
+                    }
+                    else logger.error("key " + key + " not found in logging" );
                 }
             }
         });
@@ -619,7 +636,7 @@ public class Monitor extends JFrame {
             }
         }
 
-        private void updateGui(Date date, String received, String displayName , String mc_addres, int port) {
+        private void updateGui(Date rcvdate, String received, String displayName , String mc_addres, int port) {
             // do some XML parsing
             DocumentBuilderFactory dbf =
                     DocumentBuilderFactory.newInstance();
@@ -711,7 +728,7 @@ public class Monitor extends JFrame {
             if (dataName != null) {
                 data = received.trim();
                 Vector v = new Vector();
-                String timeString = (new Timestamp(date.getTime())).toString();
+                String timeString = (new Timestamp(rcvdate.getTime())).toString();
                 v.add(timeString);
                 v.add(dataName);
                 v.add(mc_addres + ":" + port);
@@ -726,11 +743,11 @@ public class Monitor extends JFrame {
                 logger.debug("added " + uniqueId + " to buffer, size=" + buffer.size());
 
                 // add last received message to the datamonitor table
-                UpdateTable(received);
+                UpdateTable(rcvdate.getTime(), received);
 
                 dataNrOfItems++;
 
-                dataLogger.log(packet.getAddress().getHostName(), uniqueId, dataName, dataType, data, dataNrOfItems);
+                dataLogger.log(packet.getAddress().getHostName(), uniqueId, dataName, dataType, new Date().getTime(), data, dataNrOfItems);
 
             }
             JScrollBar vertical = tableMessageScrollPane.getVerticalScrollBar();
@@ -742,7 +759,7 @@ public class Monitor extends JFrame {
         }
     }
 
-    private void UpdateTable(String received) {
+    private void UpdateTable(long tmillis, String received) {
         // do some XML parsing
         DocumentBuilderFactory dbf =
                 DocumentBuilderFactory.newInstance();
@@ -814,10 +831,8 @@ public class Monitor extends JFrame {
                 } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
                     Node payload = nodes.item(0).getChildNodes().item(j);
 
-                    Date date = new Date();
-                    long time = date.getTime();
                     //Passed the milliseconds to constructor of Timestamp class
-                    Timestamp ts = new Timestamp(time);
+                    Timestamp ts = new Timestamp(tmillis);
 
                     logger.debug(ts.toString());
 
@@ -1230,10 +1245,37 @@ public class Monitor extends JFrame {
             monitor.setLocation(this.getLocation().x + 40, this.getLocation().y + 40);
         });
 
-        JMenuItem closeMenuItem = new JMenuItem("Close");
-        closeMenuItem.setActionCommand("Close");
-        closeMenuItem.setToolTipText("Close window");
-        closeMenuItem.addActionListener(event -> { this.dispose(); });
+        JMenuItem openMenuItem = new JMenuItem("Open");
+        openMenuItem.setActionCommand("Open");
+        openMenuItem.setToolTipText("Open PCAP file");
+        openMenuItem.addActionListener(event ->
+        {
+            this.LoadPcap();
+
+
+            logger.info("file size = " + packetList.size());
+            tableData.clearData();
+            int nrOfMsgs = 0;
+
+            for(byte[] m : packetList)
+            {
+                String xml = new String(Arrays.copyOfRange(m, 42, m.length), StandardCharsets.UTF_8).trim();
+                logger.debug("xml = " + xml);
+
+                dataStore.put(nrOfMsgs, xml);
+                Long tmillis = tvalList.get(nrOfMsgs);
+
+                logger.debug("tmillis=" + tmillis);
+
+                Timestamp ts = new Timestamp(tmillis);
+                dataTimeStore.put(nrOfMsgs, ts);
+                String sender = "";
+
+                dataLogger.log(sender, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
+                updateData(tmillis, xml);
+                nrOfMsgs++;
+            }
+        } );
 
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setActionCommand("Exit");
@@ -1241,7 +1283,7 @@ public class Monitor extends JFrame {
         exitMenuItem.addActionListener(event -> { exit(1); });
 
         fileMenu.add(newMenuItem);
-        fileMenu.add(closeMenuItem);
+        fileMenu.add(openMenuItem);
         fileMenu.add(exitMenuItem);
 
         JMenuItem aboutMenuItem = new JMenuItem("About");
@@ -1277,5 +1319,263 @@ public class Monitor extends JFrame {
                 exit(0);
             }
         });
+    }
+
+    private boolean LoadPcap() {
+        final JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileFilter() {
+
+            public String getDescription() {
+                return "Wireshark PCAP logging (*.pcap)";
+            }
+
+            public boolean accept(File f) {
+                if (f.isDirectory()) {
+                    return true;
+                } else {
+                    String filename = f.getName().toLowerCase();
+                    return filename.endsWith(".pcap") ;
+                }
+            }
+        });
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            logger.info("Selected file: " + selectedFile.getAbsolutePath());
+            int nrPackets = 0;
+            try {
+                PcapHandle handler = Pcaps.openOffline(selectedFile.getAbsolutePath());
+                Packet packet;
+
+                packetList = new ArrayList<>();
+                tvalList = new ArrayList<>();
+
+                while ((packet = handler.getNextPacket()) != null) {
+                    nrPackets++;
+
+                    Timestamp ts = handler.getTimestamp();
+                    logger.debug("ts = " + ts.toString());
+
+                    packetList.add(packet.getRawData());
+                    tvalList.add(ts.getTime());
+                }
+
+                logger.info("nr of packets in pcap file: " +  nrPackets);
+                handler.close();
+
+                return true;
+
+            } catch (PcapNativeException | NotOpenException ex) {
+                logger.error("Error encoding pcap file", ex);
+            }
+        }
+
+        return false;
+    }
+
+    private void updateData(long tmillis, String received) {
+        boolean TimeOut = false;
+        byte[] buf = new byte[10*1024];
+
+        if (!TimeOut) {
+
+            // do some XML parsing
+            DocumentBuilderFactory dbf =
+                    DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = null;
+            Document doc = null;
+            InputSource is = new InputSource();
+            is.setCharacterStream(new StringReader(received.trim()));
+
+            try {
+                db = dbf.newDocumentBuilder();
+                doc = db.parse(is);
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (SAXException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            NodeList nodes = doc.getElementsByTagName("data");
+
+            String dataName = null;
+            String dataKey = "";
+            String dataType = "";
+            String dataId = "";
+
+            if (nodes != null && (nodes.getLength() == 1)) {
+
+                for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                    if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+
+                        for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                            Node node = nodes.item(0).getChildNodes().item(j).getChildNodes().item((jj));
+                            logger.debug(jj + ". [" + node.getNodeName() + "]");
+                            if (node != null && node.getTextContent() != null && !node.getTextContent().isEmpty() && !node.getNodeName().contentEquals("#text")) {
+
+                                if (node.getNodeName().contentEquals("name")) {
+                                    logger.debug("NAME=" + node.getTextContent());
+                                    dataName = node.getTextContent();
+                                }
+                                if (node.getNodeName().contentEquals("id")) {
+                                    logger.debug("ID=" + node.getTextContent());
+                                    dataId = node.getTextContent();
+                                }
+
+                                if (node.getNodeName().contentEquals("type")) {
+                                    logger.debug("TYPE=" + node.getTextContent());
+                                    dataType = node.getTextContent();
+                                }
+
+                                if (node.getNodeName().contentEquals("key")) {
+                                    logger.debug("KEY=" + node.getTextContent());
+                                    dataKey = node.getTextContent();
+                                }
+                            }
+                        }
+                    } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                        Node payload = nodes.item(0).getChildNodes().item(j);
+
+                        logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                        for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                            logger.debug("childnode " + k);
+                            logger.debug("   type: " + payload.getChildNodes().item(k).getNodeType());
+                            logger.debug("   value: " + payload.getChildNodes().item(k).getNodeValue());
+                            logger.debug("   name: " + payload.getChildNodes().item(k).getNodeName());
+                            logger.debug("   text: " + payload.getChildNodes().item(k).getTextContent());
+                            if (payload.getChildNodes().item(k).getNodeName().contentEquals("item")) {
+                                logger.debug("   nr. of attributes: " + payload.getChildNodes().item(k).getAttributes().getLength());
+                                NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
+
+                                logger.debug(namedNodeMap.getNamedItem("name").getNodeValue() +
+                                        "  value: " + namedNodeMap.getNamedItem("value").getNodeValue() +
+                                        "  type: " + namedNodeMap.getNamedItem("type").getNodeValue());
+                                if (namedNodeMap.getNamedItem("range") != null)
+                                    logger.debug("  range: " + namedNodeMap.getNamedItem("range").getNodeValue());
+                            }
+                        }
+                    }
+                }
+            } else {
+                logger.debug("nodes==null or empty");
+            }
+
+            if (dataName != null) {
+                String data = received.trim();
+
+                Vector v = new Vector();
+                v.add((new Timestamp(tmillis)).toString());
+                v.add(dataName);
+                v.add(dataType);
+                v.add(dataKey);
+                v.add(data);
+                tableData.addText(v);
+            }
+        }
+    }
+
+    private void UpdateMessageTable(String received, Timestamp ts) {
+        // do some XML parsing
+        DocumentBuilderFactory dbf =
+                DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = null;
+        Document doc = null;
+        InputSource is = new InputSource();
+        is.setCharacterStream(new StringReader(received.trim()));
+
+        StringBuilder m = new StringBuilder();
+        Validator.ValidateSource(received.trim(), "data.xsd", m);
+        logger.debug("validator output: " + m.toString());
+
+        try {
+            db = dbf.newDocumentBuilder();
+            doc = db.parse(is);
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        NodeList nodes = doc.getElementsByTagName("data");
+
+        if (nodes != null && (nodes.getLength() == 1)) {
+
+            tableMessageData.clearData();
+            for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
+                if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
+
+                    for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
+                        Node node = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
+                        if (node.getTextContent() != null && !node.getTextContent().isEmpty() && !node.getNodeName().contentEquals("#text")) {
+
+                            if (node.getNodeName().contentEquals(Types.DATA_NAME)) {
+                                String dataName = node.getTextContent();
+
+                                Vector v = new Vector();
+                                v.add("MESSAGE");
+                                v.add("TEXT");
+                                v.add(dataName);
+                                tableMessageData.addText(v);
+
+                            } else if (node.getNodeName().contentEquals(Types.DATA_ID)) {
+                                String dataId = node.getTextContent();
+                                Vector v = new Vector();
+                                v.add("ID");
+                                v.add("TEXT");
+                                v.add(dataId);
+                                tableMessageData.addText(v);
+                            } else if (node.getNodeName().contentEquals(Types.DATA_KEY)) {
+                                String dataKey = node.getTextContent();
+                            } else if (node.getNodeName().contentEquals(Types.DATA_TYPE)) {
+                                String dataType = node.getTextContent();
+                                Vector v = new Vector();
+                                v.add("TYPE");
+                                v.add("TEXT");
+                                v.add(dataType);
+                                tableMessageData.addText(v);
+                            }
+                        }
+                    }
+                } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
+                    Node payload = nodes.item(0).getChildNodes().item(j);
+
+                    logger.debug(ts.toString());
+
+                    Vector v2 = new Vector();
+                    v2.add("TIME");
+                    v2.add("TEXT");
+                    v2.add(ts.toString());
+                    tableMessageData.addText(v2);
+
+                    logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
+                    for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
+                        if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
+                            NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
+
+                            logger.debug(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                    "  value: " + namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                    "  type: " + namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
+
+                            Vector v = new Vector();
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue());
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                            v.add(namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue());
+                            tableMessageData.addText(v);
+
+                            if (namedNodeMap.getNamedItem(Types.DATA_RANGE) != null)
+                                logger.debug("  range: " + namedNodeMap.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                        }
+                    }
+                }
+            }
+        } else {
+            logger.info("nodes==null or empty");
+        }
     }
 }
