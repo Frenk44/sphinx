@@ -51,10 +51,11 @@ public class Monitor extends JFrame {
     final nl.fah.monitor.data.MessageModel tableData = new nl.fah.monitor.data.MessageModel();
     final nl.fah.monitor.message.MessageModel tableMessageData = new nl.fah.monitor.message.MessageModel();
 
-    JTable table = new JTable(tableData);
+    JTable GUItable = new JTable(tableData);
     Enumeration<NetworkInterface> interfaces = null;
     JComboBox networkList;
     JComboBox networkSendList;
+    Integer Counter = 0;
 
     HashMap<String, Color> colorMap;
     Random rand = new Random();
@@ -151,7 +152,7 @@ public class Monitor extends JFrame {
             }
         });
 
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
+        GUItable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
         {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
@@ -183,8 +184,8 @@ public class Monitor extends JFrame {
                 return c;
             }
         });
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+        GUItable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        GUItable.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
             public void valueChanged(ListSelectionEvent event) {
 
                 ListSelectionModel lsm=(ListSelectionModel) event.getSource();
@@ -511,7 +512,7 @@ public class Monitor extends JFrame {
 
         public void run() {
 
-            table.addMouseListener( new MouseAdapter(){
+            GUItable.addMouseListener(new MouseAdapter(){
 
                 @Override
                 public void mouseClicked(MouseEvent e)
@@ -531,7 +532,7 @@ public class Monitor extends JFrame {
                     timeLastMouseEvent = new Date().getTime();
 
                     String aap = " clickcount=" + e.getClickCount();
-                    logger.debug(e.getSource().getClass() + aap + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
+                    logger.debug(e.getSource().getClass() + aap + " position clicked = " + GUItable.rowAtPoint(e.getPoint())  + "," +  GUItable.columnAtPoint(e.getPoint()) );
                 }
 
 
@@ -738,11 +739,12 @@ public class Monitor extends JFrame {
 
                 v.add(data);
                 tableData.addText(v);
-
-                String uniqueId = timeString;
+                tvalList.add((long) Counter);
+                String uniqueId = String.valueOf(Counter);
+                Counter++;
                 buffer.put(uniqueId, received);
                 nrOfLogs++;
-                logger.debug("added " + uniqueId + " to buffer, size=" + buffer.size());
+                logger.debug("added [" + uniqueId + "] to buffer, size=" + buffer.size());
 
                 // add last received message to the datamonitor table
                 UpdateTable(rcvdate.getTime(), received);
@@ -909,9 +911,10 @@ public class Monitor extends JFrame {
         JButton clearButton = new JButton(new AbstractAction("clear") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                MessageModel dm = (MessageModel)table.getModel();
+                MessageModel dm = (MessageModel) GUItable.getModel();
                 dm.clearData();
                 dataLogger.clear();
+                Counter = 0;
                 nl.fah.monitor.message.MessageModel dm2 = (nl.fah.monitor.message.MessageModel)tableMessage.getModel();
                 dm2.clearData();
             }
@@ -1136,10 +1139,10 @@ public class Monitor extends JFrame {
         jifMonAndStim.add(ControlPanel, BorderLayout.NORTH);
 
         Panel DataPanel = new Panel();
-        table.setSize( new Dimension(430,100));
-        table.setPreferredScrollableViewportSize(new Dimension(430, 100));
-        table.setFillsViewportHeight(true);
-        tableMessageScrollPane = new JScrollPane(table);
+        GUItable.setSize( new Dimension(430,100));
+        GUItable.setPreferredScrollableViewportSize(new Dimension(430, 100));
+        GUItable.setFillsViewportHeight(true);
+        tableMessageScrollPane = new JScrollPane(GUItable);
         DataPanel.add(tableMessageScrollPane);
         DataPanel.add(new JScrollPane(tableMessage));
 
@@ -1255,11 +1258,18 @@ public class Monitor extends JFrame {
         openMenuItem.setToolTipText("Open PCAP file");
         openMenuItem.addActionListener(event ->
         {
+            dataTimeStore.clear();
+            dataStore.clear();
+            dataLogger.clear();
             this.LoadPcap();
 
-
             logger.info("file size = " + packetList.size());
+            MessageModel dm = (MessageModel) GUItable.getModel();
+            dm.clearData();
             tableData.clearData();
+            tableMessageData.clearData();
+
+
             int nrOfMsgs = 0;
 
             for(byte[] m : packetList)
@@ -1279,6 +1289,7 @@ public class Monitor extends JFrame {
                 dataLogger.log(address, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
                 updateData(tmillis, xml, address);
                 nrOfMsgs++;
+                Counter++;
             }
         } );
 
