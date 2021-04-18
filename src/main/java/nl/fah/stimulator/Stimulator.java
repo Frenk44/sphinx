@@ -1,7 +1,6 @@
 package nl.fah.stimulator;
 
 import nl.fah.common.Types;
-import nl.fah.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.CharacterData;
@@ -24,7 +23,6 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Stimulator extends JFrame {
-    static String propFile = "/sphinx.properties";
 
     JComboBox dataList;
     JComboBox dataType;
@@ -176,26 +174,22 @@ public class Stimulator extends JFrame {
         dataKey = new JTextField(6);
         dataKey.setText("");
         dataKey.setEditable(false);
-        dataType = new JComboBox(new String[]{Types.MSG_TYPE_EVENT,Types.MSG_TYPE_CONTEXT,Types.MSG_TYPE_PERSISTENT});
+        dataType = new JComboBox<>(new String[]{Types.MSG_TYPE_EVENT,Types.MSG_TYPE_CONTEXT,Types.MSG_TYPE_PERSISTENT});
         dataType.addActionListener(
-                new ActionListener() {
+                e -> {
+                    JComboBox cb = (JComboBox) e.getSource();
+                    String dataTypeString = (String) cb.getSelectedItem();
+                    logger.debug("dataType:" + dataTypeString);
 
-                    public void actionPerformed(ActionEvent e) {
-                        JComboBox cb = (JComboBox) e.getSource();
-                        String dataTypeString = (String) cb.getSelectedItem();
-                        logger.debug("dataType:" + dataTypeString);
-
-                        if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
-                            dataKey.setText("");
-                            dataKey.setEditable(false);
-                        }
-                        else dataKey.setEditable(true);
+                    if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
+                        dataKey.setText("");
+                        dataKey.setEditable(false);
                     }
+                    else dataKey.setEditable(true);
+                });
 
-                } );
 
-
-        dataList = new JComboBox(dataListNames){
+        dataList = new JComboBox<String>(dataListNames){
             // on select of dataname, fill the table
 
         };
@@ -203,6 +197,7 @@ public class Stimulator extends JFrame {
 
         dataList.addActionListener(new ActionListener() {
 
+            @SuppressWarnings("unchecked")
             public void actionPerformed(ActionEvent e) {
                 JComboBox jcmbType = (JComboBox) e.getSource();
                 String cmbType = (String) jcmbType.getSelectedItem();
@@ -296,8 +291,8 @@ public class Stimulator extends JFrame {
                         }
 
                         Vector v = new Vector();
-                        v.add(new String(name));
-                        v.add(new String(type));
+                        v.add(name);
+                        v.add(type);
                         v.add(new String());
 
                         tableData.addText(v);
@@ -405,6 +400,7 @@ public class Stimulator extends JFrame {
     JTable table = new JTable(tableData){
         //  Determine editor to be used by row
         @Override
+        @SuppressWarnings("unchecked")
         public TableCellEditor getCellEditor(int row, int column)
         {
             int modelColumn = convertColumnIndexToModel( column );

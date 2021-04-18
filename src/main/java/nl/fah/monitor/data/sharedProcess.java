@@ -39,7 +39,7 @@ public class sharedProcess extends Thread {
 
     }
 
-    public void putData(String data) {
+    public void putData(String data, String sender, int port) {
         logger.info("putData[" + index + "] = " + data);
         stringBuffer.received[index++].write(data);
         dataAvl = true;

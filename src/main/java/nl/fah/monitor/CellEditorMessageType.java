@@ -12,6 +12,7 @@ public class CellEditorMessageType extends AbstractCellEditor implements TableCe
     private JComboBox editor;
     private String [] values = {Types.MSG_TYPE_EVENT, Types.MSG_TYPE_CONTEXT, Types.MSG_TYPE_PERSISTENT};
 
+    @SuppressWarnings("unchecked")
     public CellEditorMessageType()
     {
         // Create a new Combobox with the array of values.

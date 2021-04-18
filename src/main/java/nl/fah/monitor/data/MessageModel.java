@@ -8,17 +8,18 @@ public class MessageModel extends AbstractTableModel {
     String[] columnNames = {"received",
             "name",
             "address",
-            "interface"};
+            "size"};
 
     protected Vector listData = new Vector();
 
-
+    @SuppressWarnings("unchecked")
     public void addText(Vector data) {
         listData.addElement(new Vector(data));
         fireTableDataChanged();
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public String getColumnName(int index) {
         return columnNames[index];
     }

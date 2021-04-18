@@ -110,9 +110,10 @@ public class DataMonitor extends JFrame {
                     }
                     String received = new String(
                             packet.getData(), 0, packet.getLength());
-
+                    String hSender = packet.getAddress().getHostAddress();
+                    int hPort = packet.getPort();
                     logger.info("receiverProcess received: " + received);
-                    sharedData.putData(received);
+                    sharedData.putData(received, hSender, hPort);
 
                     //TODO: FIFO buffer
                     if ("end".equals(received)) {
@@ -199,8 +200,8 @@ public class DataMonitor extends JFrame {
                             timestamp = sharedData.getTimeValidity();
                             sequence = sharedData.getSequence();
                             logger.info(xml);
-
-                            updateData(xml);
+                            String interfaceName = "eth0";
+                            updateData(xml, interfaceName);
                             Date date = new Date();
                             long time = date.getTime();
                             //Passed the milliseconds to constructor of Timestamp class
@@ -245,6 +246,7 @@ public class DataMonitor extends JFrame {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void UpdateMessageTable(String received, Timestamp ts) {
         // do some XML parsing
         DocumentBuilderFactory dbf =
@@ -351,12 +353,11 @@ public class DataMonitor extends JFrame {
         }
     }
 
-    private void updateData(String received) {
+    @SuppressWarnings("unchecked")
+    private void updateData(String received, String ifName) {
         logger.info("updating gui");
 
         boolean TimeOut = false;
-        byte[] buf = new byte[10*1024];
-        DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
         if (!TimeOut) {
 
@@ -386,6 +387,8 @@ public class DataMonitor extends JFrame {
             String dataKey = "";
             String dataType = "";
             String dataId = "";
+            int dataSize = 0;
+            String dataSender = ifName;
 
             if (nodes != null && (nodes.getLength() == 1)) {
 
@@ -450,8 +453,8 @@ public class DataMonitor extends JFrame {
                 Vector v = new Vector();
                 v.add((new Timestamp(date.getTime())).toString());
                 v.add(dataName);
-                v.add(dataType);
-                v.add(dataKey);
+                v.add(dataSender);
+                v.add(dataSize);
 
                 v.add(data);
                 tableData.addText(v);

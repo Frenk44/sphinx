@@ -180,6 +180,7 @@ public class MessageMonitor extends JFrame {
             // TODO : auto scroll down
         }
 
+        @SuppressWarnings("unchecked")
         private void UpdateTable(String received) {
             // do some XML parsing
             DocumentBuilderFactory dbf =
@@ -257,36 +258,36 @@ public class MessageMonitor extends JFrame {
                         logger.debug(ts.toString());
 
                         Vector v2 = new Vector();
-                        v2.add(new String("TIME"));
-                        v2.add(new String("TEXT"));
-                        v2.add(new String(ts.toString()));
+                        v2.add("TIME");
+                        v2.add("TEXT");
+                        v2.add(ts.toString());
                         tableData.addText(v2);
 
                         if (dataKey != null && !dataKey.isEmpty()) {
                             Vector v3 = new Vector();
-                            v3.add(new String("KEY"));
-                            v3.add(new String("TEXT"));
-                            v3.add(new String(dataKey));
+                            v3.add("KEY");
+                            v3.add("TEXT");
+                            v3.add(dataKey);
                             tableData.addText(v3);
                         }
 
                         logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
                         for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
                             if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
-                                NamedNodeMap aaaa = payload.getChildNodes().item(k).getAttributes();
+                                NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
 
-                                logger.debug(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue() +
-                                        "  value: " + aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue() +
-                                        "  type: " + aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                                logger.debug(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue() +
+                                        "  value: " + namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue() +
+                                        "  type: " + namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
 
                                 Vector v = new Vector();
-                                v.add(new String(aaaa.getNamedItem(Types.DATA_NAME).getNodeValue()));
-                                v.add(new String(aaaa.getNamedItem(Types.DATA_TYPE).getNodeValue()));
-                                v.add(new String(aaaa.getNamedItem(Types.DATA_VALUE).getNodeValue()));
+                                v.add(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue());
+                                v.add(namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
+                                v.add(namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue());
                                 tableData.addText(v);
 
-                                if (aaaa.getNamedItem(Types.DATA_RANGE) != null)
-                                    logger.debug("  range: " + aaaa.getNamedItem(Types.DATA_RANGE).getNodeValue());
+                                if (namedNodeMap.getNamedItem(Types.DATA_RANGE) != null)
+                                    logger.debug("  range: " + namedNodeMap.getNamedItem(Types.DATA_RANGE).getNodeValue());
                             }
                         }
                     }
@@ -294,8 +295,6 @@ public class MessageMonitor extends JFrame {
             } else {
                 logger.info("nodes==null or empty");
             }
-
-
         }
     }
 

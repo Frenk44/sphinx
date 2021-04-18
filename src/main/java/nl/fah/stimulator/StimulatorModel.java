@@ -17,12 +17,14 @@ public class StimulatorModel extends AbstractTableModel {
         else return false;
     }
 
+    @SuppressWarnings("unchecked")
     public void setValueAt(Object value, int row, int col) {
         Vector v = (Vector)(listData.elementAt(row));
         v.set(2, value);
         fireTableCellUpdated(row, col);
     }
 
+    @SuppressWarnings("unchecked")
     public void addText(Vector data) {
         listData.addElement(new Vector(data));
         fireTableDataChanged();

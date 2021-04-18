@@ -8,7 +8,9 @@ import nl.fah.monitor.data.MessageModel;
 import nl.fah.stimulator.Validator;
 
 import org.pcap4j.core.*;
+
 import org.pcap4j.packet.Packet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -18,6 +20,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
@@ -34,17 +37,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.io.FileInputStream;
 
 import static java.lang.System.exit;
 
@@ -63,9 +61,10 @@ public class Monitor extends JFrame {
 
     public List<byte[]> packetList = new ArrayList<>();
     public List<Long> tvalList = new ArrayList<>();
+    public List<String> senderList = new ArrayList<>();
 
-    HashMap<Integer, String> dataStore = new HashMap<Integer, String>();
-    HashMap<Integer, Timestamp> dataTimeStore = new HashMap<Integer, Timestamp>();
+    HashMap<Integer, String> dataStore = new HashMap<>();
+    HashMap<Integer, Timestamp> dataTimeStore = new HashMap<>();
 
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
     {
@@ -88,6 +87,7 @@ public class Monitor extends JFrame {
     JTable tableMessage = new JTable(tableMessageData){
 
         @Override
+        @SuppressWarnings("unchecked")
         public TableCellEditor getCellEditor(int row, int column)
         {
             logger.info( "row :" + row);
@@ -268,6 +268,7 @@ public class Monitor extends JFrame {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void initDataList(){
         logger.debug("initDataList and create inputThread");
         Properties prop = new Properties();
@@ -636,6 +637,7 @@ public class Monitor extends JFrame {
             }
         }
 
+        @SuppressWarnings("unchecked")
         private void updateGui(Date rcvdate, String received, String displayName , String mc_addres, int port) {
             // do some XML parsing
             DocumentBuilderFactory dbf =
@@ -731,8 +733,8 @@ public class Monitor extends JFrame {
                 String timeString = (new Timestamp(rcvdate.getTime())).toString();
                 v.add(timeString);
                 v.add(dataName);
-                v.add(mc_addres + ":" + port);
                 v.add(displayName);
+                v.add(data.length());
 
                 v.add(data);
                 tableData.addText(v);
@@ -759,6 +761,7 @@ public class Monitor extends JFrame {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void UpdateTable(long tmillis, String received) {
         // do some XML parsing
         DocumentBuilderFactory dbf =
@@ -885,6 +888,7 @@ public class Monitor extends JFrame {
         inputThread1.setPriority(priority);
     }
 
+    @SuppressWarnings("unchecked")
     public Monitor() {
         JButton startButton = new JButton(new AbstractAction("start") {
             @Override
@@ -950,6 +954,7 @@ public class Monitor extends JFrame {
             }
 
             @Override
+            @SuppressWarnings("unchecked")
             public void actionPerformed(ActionEvent e) {
                 if(tableMessageData.getRowCount()>0)
                 {
@@ -1269,10 +1274,10 @@ public class Monitor extends JFrame {
 
                 Timestamp ts = new Timestamp(tmillis);
                 dataTimeStore.put(nrOfMsgs, ts);
-                String sender = "";
+                String address = senderList.get(nrOfMsgs);
 
-                dataLogger.log(sender, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
-                updateData(tmillis, xml);
+                dataLogger.log(address, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
+                updateData(tmillis, xml, address);
                 nrOfMsgs++;
             }
         } );
@@ -1311,7 +1316,6 @@ public class Monitor extends JFrame {
 
         setJMenuBar(menuBar);
 
-
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -1338,7 +1342,6 @@ public class Monitor extends JFrame {
                 }
             }
         });
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 
         int result = fileChooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
@@ -1360,6 +1363,11 @@ public class Monitor extends JFrame {
 
                     packetList.add(packet.getRawData());
                     tvalList.add(ts.getTime());
+
+                    String ifName = handler.getDlt().name();
+                    String dlName =  Pcaps.dataLinkTypeToName(handler.getDlt());
+
+                    senderList.add(ifName + "/" + dlName );
                 }
 
                 logger.info("nr of packets in pcap file: " +  nrPackets);
@@ -1369,15 +1377,16 @@ public class Monitor extends JFrame {
 
             } catch (PcapNativeException | NotOpenException ex) {
                 logger.error("Error encoding pcap file", ex);
+
             }
         }
 
         return false;
     }
 
-    private void updateData(long tmillis, String received) {
+    @SuppressWarnings("unchecked")
+    private void updateData(long tmillis, String received, String dataSender) {
         boolean TimeOut = false;
-        byte[] buf = new byte[10*1024];
 
         if (!TimeOut) {
 
@@ -1406,9 +1415,9 @@ public class Monitor extends JFrame {
             String dataKey = "";
             String dataType = "";
             String dataId = "";
+            int dataSize = received.length();
 
             if (nodes != null && (nodes.getLength() == 1)) {
-
                 for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
                     if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
 
@@ -1470,14 +1479,15 @@ public class Monitor extends JFrame {
                 Vector v = new Vector();
                 v.add((new Timestamp(tmillis)).toString());
                 v.add(dataName);
-                v.add(dataType);
-                v.add(dataKey);
+                v.add(dataSender);
+                v.add(dataSize);
                 v.add(data);
                 tableData.addText(v);
             }
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void UpdateMessageTable(String received, Timestamp ts) {
         // do some XML parsing
         DocumentBuilderFactory dbf =
