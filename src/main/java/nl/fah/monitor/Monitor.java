@@ -1276,20 +1276,30 @@ public class Monitor extends JFrame {
             {
                 String xml = new String(Arrays.copyOfRange(m, 42, m.length), StandardCharsets.UTF_8).trim();
                 logger.debug("xml = " + xml);
+                try {
+                    DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+                    logger.debug("Message is valid XML.");
 
-                dataStore.put(nrOfMsgs, xml);
-                Long tmillis = tvalList.get(nrOfMsgs);
+                    dataStore.put(nrOfMsgs, xml);
+                    Long tmillis = tvalList.get(nrOfMsgs);
 
-                logger.debug("tmillis=" + tmillis);
+                    logger.debug("tmillis=" + tmillis);
 
-                Timestamp ts = new Timestamp(tmillis);
-                dataTimeStore.put(nrOfMsgs, ts);
-                String address = senderList.get(nrOfMsgs);
+                    Timestamp ts = new Timestamp(tmillis);
+                    dataTimeStore.put(nrOfMsgs, ts);
+                    String address = senderList.get(nrOfMsgs);
 
-                dataLogger.log(address, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
-                updateData(tmillis, xml, address);
-                nrOfMsgs++;
-                Counter++;
+                    dataLogger.log(address, String.valueOf( nrOfMsgs), dataName, "xml", tmillis, xml, nrOfMsgs);
+                    updateData(tmillis, xml, address);
+                    nrOfMsgs++;
+                    Counter++;
+
+                } catch (Exception e) {
+                    logger.info("Message is not valid XML.");
+                }
+
+
+
             }
         } );
 
