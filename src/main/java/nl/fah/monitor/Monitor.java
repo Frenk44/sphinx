@@ -40,6 +40,7 @@ import java.awt.event.MouseEvent;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -751,7 +752,7 @@ public class Monitor extends JFrame {
 
                 dataNrOfItems++;
 
-                dataLogger.log(packet.getAddress().getHostName(), uniqueId, dataName, dataType, new Date().getTime(), data, dataNrOfItems);
+                dataLogger.log(String.valueOf(dataNrOfItems), uniqueId, dataName, dataType, new Date().getTime(), data, dataNrOfItems);
 
             }
             JScrollBar vertical = tableMessageScrollPane.getVerticalScrollBar();
@@ -1381,7 +1382,6 @@ public class Monitor extends JFrame {
 
                     Timestamp ts = handler.getTimestamp();
                     logger.debug("ts = " + ts.toString());
-
                     packetList.add(packet.getRawData());
                     tvalList.add(ts.getTime());
 
