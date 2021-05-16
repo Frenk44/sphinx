@@ -13,7 +13,7 @@ The tool can work in online realtime operation:
   <li> monitor data </li>
   <li> stimulate data </li>
 <br>
-The tool can also be used in non-realtime operation:
+The tool can also be used in offline non-realtime operation:
   <li> load PCAP file for offline analysis </li>
   
   
