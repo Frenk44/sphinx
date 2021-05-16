@@ -9,7 +9,7 @@ An UDP multicast network enables the developer to use multiple interacting progr
 The Tool will help the developer to test these executables individually and integrate them together. The Tool is written in Java and can be compiled and executed on any Linux or Windows machine.
 <br>
 <br>
-The tool can work in online realtime operation:
+The tool can be used in online realtime operation:
   <li> monitor data </li>
   <li> stimulate data </li>
 <br>
