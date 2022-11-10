@@ -5,12 +5,10 @@ import nl.fah.common.Utils;
 import nl.fah.logger.DataLogger;
 import nl.fah.logger.DataLoggerImpl;
 import nl.fah.monitor.data.MessageModel;
-import nl.fah.stimulator.Validator;
 
 import org.pcap4j.core.*;
 
 import org.pcap4j.packet.Packet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -40,17 +38,20 @@ import java.awt.event.MouseEvent;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
+import java.net.DatagramPacket;
 import static java.lang.System.exit;
+import static org.pcap4j.core.Pcaps.findAllDevs;
 
 public class Monitor extends JFrame {
 
+    public static final int _MAX_PACKET_SIZE = 100000;
     final nl.fah.monitor.data.MessageModel tableData = new nl.fah.monitor.data.MessageModel();
     final nl.fah.monitor.message.MessageModel tableMessageData = new nl.fah.monitor.message.MessageModel();
+
+    final static int BSIZE = 28;
 
     JTable GUItable = new JTable(tableData);
     Enumeration<NetworkInterface> interfaces = null;
@@ -67,6 +68,12 @@ public class Monitor extends JFrame {
 
     HashMap<Integer, String> dataStore = new HashMap<>();
     HashMap<Integer, Timestamp> dataTimeStore = new HashMap<>();
+
+    JButton startButton;
+    JButton clearButton;
+    JButton saveButton;
+
+    Packet[] packets = new Packet[_MAX_PACKET_SIZE];
 
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
     {
@@ -133,7 +140,7 @@ public class Monitor extends JFrame {
     };
 
 
-    void initD(){
+    void initApplication(){
 
         // init colorMap
         colorMap = new HashMap<>();
@@ -296,7 +303,7 @@ public class Monitor extends JFrame {
             }
         } catch (IOException e) {
             exit(0);
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
 
@@ -384,12 +391,17 @@ public class Monitor extends JFrame {
                try {
                   is  = new FileInputStream(fname);
                 } catch (IOException e1) {
-                    e1.printStackTrace();
+                   logger.error(e1.getLocalizedMessage());
                 }
 
                 dataName = cmbType;
 
-                String xml = Utils.getStringFromInputStream(is);
+                String xml = null;
+                try {
+                    xml = Utils.getStringFromInputStream(is);
+                } catch (IOException ex) {
+                    logger.error(ex.getLocalizedMessage());
+                }
                 logger.debug(xml);
 
                 DocumentBuilderFactory dbf =
@@ -398,7 +410,7 @@ public class Monitor extends JFrame {
                 try {
                     db = dbf.newDocumentBuilder();
                 } catch (ParserConfigurationException e1) {
-                    e1.printStackTrace();
+                    logger.error(e1.getLocalizedMessage());
                 }
                 InputSource is1 = new InputSource();
                 is1.setCharacterStream(new StringReader(xml));
@@ -408,9 +420,9 @@ public class Monitor extends JFrame {
                     try {
                         doc = db.parse(is1);
                     } catch (SAXException e1) {
-                        e1.printStackTrace();
+                        logger.error(e1.getLocalizedMessage());
                     } catch (IOException e1) {
-                        e1.printStackTrace();
+                        logger.error(e1.getLocalizedMessage());
                     }
                 }
                 NodeList headernodes = doc.getElementsByTagName("header");
@@ -549,10 +561,12 @@ public class Monitor extends JFrame {
                     while(true){
                         if (!pause){
 
+                            startButton.setIcon( pause ? iconStart : iconPaused );
+
                             try {
                                 ni = NetworkInterface.getByName(networkList.getSelectedItem().toString());
                             } catch (SocketException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
 
                             multicast_read = ipTextField.getText();
@@ -565,20 +579,24 @@ public class Monitor extends JFrame {
                                 socket.setNetworkInterface(ni);
 
                             } catch (UnknownHostException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
 
                             try {
+                                logger.info("joingroup 5");
                                 socket.joinGroup(group);
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
 
                             break;
                         }
-                        else Thread.sleep(250);
+                        else{
+                            startButton.setIcon(iconStart);
+                            Thread.sleep(250);
+                        }
                     }
 
                     logger.info("START MONITORING ON " + multicast_read + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
@@ -589,21 +607,21 @@ public class Monitor extends JFrame {
                             try {
                                 socket.leaveGroup(group);
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
                             logger.info("STOP MONITORING ON " + multicast_read + ":" + port + " NW-interface: " + socket.getNetworkInterface().getDisplayName());
 
                             break;
                         }
-                        update(socket, ni.getName(), multicast_read, port);
+                        update(socket, ni.getName(), multicast_read);
                         logger.debug("sleep");
                         Thread.sleep(10);
                     }
-                } catch (InterruptedException | SocketException e) { e.printStackTrace();}
+                } catch (InterruptedException | SocketException e) { logger.error(e.getLocalizedMessage());}
             }
         }
 
-        private void update(MulticastSocket socket, String displayName, String mc_addres, int port) {
+        private void update(MulticastSocket socket, String displayName, String mc_addres) {
             boolean TimeOut = false;
             byte[] buf = new byte[10*1024];
             packet = new DatagramPacket(buf, buf.length);
@@ -619,7 +637,7 @@ public class Monitor extends JFrame {
                 TimeOut = true;
                 logger.debug("socket receive timeout");
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
 
             if (!TimeOut) {
@@ -657,11 +675,11 @@ public class Monitor extends JFrame {
                 db = dbf.newDocumentBuilder();
                 doc = db.parse(is);
             } catch (ParserConfigurationException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             } catch (SAXException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
 
             NodeList nodes = doc.getElementsByTagName("data");
@@ -787,11 +805,11 @@ public class Monitor extends JFrame {
             db = dbf.newDocumentBuilder();
             doc = db.parse(is);
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         } catch (SAXException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         NodeList nodes = doc.getElementsByTagName("data");
@@ -890,26 +908,40 @@ public class Monitor extends JFrame {
     {
         inputThread1.setPriority(priority);
     }
+    ImageIcon iconStart;
+    ImageIcon iconStop;
+    ImageIcon iconPaused;
+    ImageIcon iconTrash;
+    ImageIcon iconStore;
+    ImageIcon iconSend;
 
     @SuppressWarnings("unchecked")
     public Monitor() {
-        JButton startButton = new JButton(new AbstractAction("start") {
+
+        iconStart = new ImageIcon(this.getClass().getResource("/images/icons8-video-record-24.png"),
+                "start");
+        iconStop = new ImageIcon(this.getClass().getResource("/images/icons8-pause-squared-24.png"),
+                "stop");
+        iconPaused = new ImageIcon(this.getClass().getResource("/images/icons8-pause-squared-24.png"),
+                "pause");
+        iconTrash = new ImageIcon(this.getClass().getResource("/images/icons8-trash-24.png"),
+                "trash");
+        iconStore = new ImageIcon(this.getClass().getResource("/images/icons8-save-24.png"),
+                "trash");
+        iconSend = new ImageIcon(this.getClass().getResource("/images/icons8-email-send-24.png"),
+                "send");
+
+        startButton = new JButton(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                infoLabel.setText("monitoring");
-                pause = false;
+                pause = !pause;
+                infoLabel.setText(pause ? "stopped" : "monitoring");
             }
         });
+        startButton.setIcon(iconStart);
+        startButton.setPreferredSize(new Dimension(BSIZE, BSIZE));
 
-        JButton stopButton = new JButton(new AbstractAction("stop") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                infoLabel.setText("stopped");
-                pause = true;
-            }
-        });
-
-        JButton clearButton = new JButton(new AbstractAction("clear") {
+        clearButton = new JButton(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 MessageModel dm = (MessageModel) GUItable.getModel();
@@ -920,8 +952,30 @@ public class Monitor extends JFrame {
                 dm2.clearData();
             }
         });
+        clearButton.setIcon(iconTrash);
+        clearButton.setPreferredSize(new Dimension(BSIZE, BSIZE));
 
-        JButton sendButtonStim = new JButton(new AbstractAction("send") {
+        saveButton = new JButton(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                try {
+                    Utils.dumpPCAP(packets, "test.pcap");
+                } catch (PcapNativeException ex) {
+                    logger.error(ex.getLocalizedMessage());
+                } catch (NotOpenException ex) {
+                    logger.error(ex.getLocalizedMessage());
+                } catch (IOException ex) {
+                    logger.error(ex.getLocalizedMessage());
+                }
+
+            }
+        });
+
+        saveButton.setIcon(iconStore);
+        saveButton.setPreferredSize(new Dimension(BSIZE, BSIZE));
+
+        JButton sendButtonStim = new JButton(new AbstractAction() {
             Logger logger = LoggerFactory.getLogger(Monitor.class);
 
             public void sendData(String message, String ip, int port, String network){
@@ -930,7 +984,7 @@ public class Monitor extends JFrame {
                 try {
                     group = InetAddress.getByName(ip);
                 } catch (UnknownHostException e6) {
-                    e6.printStackTrace();
+                    logger.error(e6.getLocalizedMessage());
                 }
 
                 //create Multicast socket to to pretending group
@@ -942,8 +996,8 @@ public class Monitor extends JFrame {
                     ni = NetworkInterface.getByName(network);
 
                     s.setNetworkInterface(ni);
-                    s.joinGroup(group);
-                    logger.info("joined group on ni " + network);
+                 //   s.joinGroup(group);
+                 //   logger.info("joined group on ni " + network);
 
                     byte[] b = message.getBytes();
 
@@ -953,7 +1007,7 @@ public class Monitor extends JFrame {
                     s.send(dp);
 
                 } catch (IOException e7) {
-                    e7.printStackTrace();
+                    logger.error(e7.getLocalizedMessage());
                 }
             }
 
@@ -997,6 +1051,8 @@ public class Monitor extends JFrame {
                 }
             }
         });
+        sendButtonStim.setIcon(iconSend);
+        sendButtonStim.setPreferredSize(new Dimension(BSIZE, BSIZE));
 
         initDataList();
 
@@ -1064,12 +1120,12 @@ public class Monitor extends JFrame {
 
         Panel StimControlPanel = new Panel();
 
-        initD();
+        initApplication();
 
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         while (interfaces.hasMoreElements())
@@ -1088,7 +1144,7 @@ public class Monitor extends JFrame {
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         int nrOfInterFaces =0;
@@ -1098,7 +1154,7 @@ public class Monitor extends JFrame {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 if (networkInterface.isUp() && (networkInterface.supportsMulticast() || networkInterface.isLoopback())) nrOfInterFaces++;
             } catch (SocketException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
         }
 
@@ -1109,7 +1165,7 @@ public class Monitor extends JFrame {
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         int ind = 0;
@@ -1126,7 +1182,7 @@ public class Monitor extends JFrame {
                 }
 
             } catch (SocketException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
         }
 
@@ -1134,8 +1190,8 @@ public class Monitor extends JFrame {
         networkSendList = new JComboBox(nwSendStrings);
         ControlPanel.add(networkList);
         ControlPanel.add(startButton);
-        ControlPanel.add(stopButton);
         ControlPanel.add(clearButton);
+        ControlPanel.add(saveButton);
 
         jifMonAndStim.add(ControlPanel, BorderLayout.NORTH);
 
@@ -1423,11 +1479,11 @@ public class Monitor extends JFrame {
                 db = dbf.newDocumentBuilder();
                 doc = db.parse(is);
             } catch (ParserConfigurationException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             } catch (SAXException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
 
             NodeList nodes = doc.getElementsByTagName("data");
@@ -1526,11 +1582,11 @@ public class Monitor extends JFrame {
             db = dbf.newDocumentBuilder();
             doc = db.parse(is);
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         } catch (SAXException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         NodeList nodes = doc.getElementsByTagName("data");
