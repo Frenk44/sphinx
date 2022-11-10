@@ -918,17 +918,17 @@ public class Monitor extends JFrame {
     @SuppressWarnings("unchecked")
     public Monitor() {
 
-        iconStart = new ImageIcon(this.getClass().getResource("/images/icons8-video-record-24.png"),
+        iconStart = new ImageIcon(this.getClass().getResource("icons8-video-record-24.png"),
                 "start");
-        iconStop = new ImageIcon(this.getClass().getResource("/images/icons8-pause-squared-24.png"),
+        iconStop = new ImageIcon(this.getClass().getResource("icons8-pause-squared-24.png"),
                 "stop");
-        iconPaused = new ImageIcon(this.getClass().getResource("/images/icons8-pause-squared-24.png"),
+        iconPaused = new ImageIcon(this.getClass().getResource("icons8-pause-squared-24.png"),
                 "pause");
-        iconTrash = new ImageIcon(this.getClass().getResource("/images/icons8-trash-24.png"),
+        iconTrash = new ImageIcon(this.getClass().getResource("icons8-trash-24.png"),
                 "trash");
-        iconStore = new ImageIcon(this.getClass().getResource("/images/icons8-save-24.png"),
+        iconStore = new ImageIcon(this.getClass().getResource("icons8-save-24.png"),
                 "trash");
-        iconSend = new ImageIcon(this.getClass().getResource("/images/icons8-email-send-24.png"),
+        iconSend = new ImageIcon(this.getClass().getResource("icons8-email-send-24.png"),
                 "send");
 
         startButton = new JButton(new AbstractAction() {
