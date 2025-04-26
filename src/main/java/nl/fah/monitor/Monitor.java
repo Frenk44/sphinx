@@ -77,7 +77,6 @@ public class Monitor extends JFrame {
 
     final JInternalFrame jifMonAndStim = new JInternalFrame("Monitor and Stimulator")
     {
-
     };
 
     String[] getValues(int row, int column){
