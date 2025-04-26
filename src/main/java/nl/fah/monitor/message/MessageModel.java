@@ -2,8 +2,11 @@ package nl.fah.monitor.message;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.Vector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageModel extends AbstractTableModel {
+    Logger logger = LoggerFactory.getLogger(MessageMonitor.class);
 
     String[] columnNames = {"name",
             "type",
@@ -37,7 +40,26 @@ public class MessageModel extends AbstractTableModel {
 
     public int getRowCount() { return listData.size(); }
     public int getColumnCount() { return columnNames.length; }
-    public Object getValueAt(int row, int column){ return ((Vector)(listData.elementAt(row))).elementAt(column); }
+    public Object getValueAt(int row, int column){
+        Object o = new Object();
+
+        try {
+            if(listData!=null){
+                Vector vRow = (Vector)(listData.elementAt(row));
+                if(vRow!=null && vRow.size()>0){
+                    o = vRow.elementAt(column);
+                }
+
+                return o;
+            }
+        }
+        catch(ArrayIndexOutOfBoundsException exception) {
+            logger.warn("ArrayIndexOutOfBoundsException");
+        }
+
+        return new Vector();
+
+    }
 
     public void clearData(){
         listData.clear();

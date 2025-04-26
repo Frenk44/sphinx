@@ -19,6 +19,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferStrategy;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.*;
@@ -28,6 +29,8 @@ import java.util.Enumeration;
 import java.util.Vector;
 
 public class MessageMonitor extends JFrame {
+    private final int BUFFERS = 2;
+    private BufferStrategy bufferStrategy;
 
     final MessageModel tableData = new MessageModel();
     JTable table = new JTable(tableData);
@@ -43,6 +46,10 @@ public class MessageMonitor extends JFrame {
     boolean pause = true;
 
     Logger logger = LoggerFactory.getLogger(MessageMonitor.class);
+
+    public void paint(Graphics g) {
+        super.paint(g);
+    }
 
     private class InputProcess implements Runnable {
 
