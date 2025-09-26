@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.net.DatagramPacket;
 import static java.lang.System.exit;
+import static nl.fah.common.Utils.validMulticast;
 import static org.pcap4j.core.Pcaps.findAllDevs;
 
 public class Monitor extends JFrame {
@@ -248,33 +249,7 @@ public class Monitor extends JFrame {
 
     Hashtable enums = new Hashtable();
 
-    public static boolean validIP(String ip) {
-        if (ip == null || ip.isEmpty()) return false;
-        ip = ip.trim();
-        if ((ip.length() < 6) & (ip.length() > 15)) return false;
 
-        try {
-            Pattern pattern = Pattern.compile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-            Matcher matcher = pattern.matcher(ip);
-            return matcher.matches();
-        } catch (PatternSyntaxException ex) {
-            return false;
-        }
-    }
-
-    public static boolean validMulticast(String ip) {
-        if (ip == null || ip.isEmpty()) return false;
-        ip = ip.trim();
-        if ((ip.length() < 6) & (ip.length() > 15)) return false;
-
-        try {
-            Pattern pattern = Pattern.compile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-            Matcher matcher = pattern.matcher(ip);
-            return matcher.matches();
-        } catch (PatternSyntaxException ex) {
-            return false;
-        }
-    }
 
     @SuppressWarnings("unchecked")
     public void initDataList(){
@@ -1060,19 +1035,17 @@ public class Monitor extends JFrame {
         ipTextField.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
                 multicast_read = ipTextField.getText();
-                Boolean v = validMulticast(multicast_read);
                 if (!validMulticast(multicast_read)) ipTextField.setBackground(Color.red);
                 else ipTextField.setBackground(Color.white);
                 logger.info("multicast address has changed: " + multicast_read);
             }
             public void removeUpdate(DocumentEvent e) {
                 multicast_read = ipTextField.getText();
-
-                Boolean v = validMulticast(multicast_read);
+                Boolean validMulticast = validMulticast(multicast_read);
                 if (!validMulticast(multicast_read)) ipTextField.setBackground(Color.red);
                 else ipTextField.setBackground(Color.white);
 
-                logger.info("multicast address has changed: " + multicast_read + " valid="  + v);
+                logger.info("multicast address has changed: " + multicast_read + " valid="  + validMulticast);
             }
             public void insertUpdate(DocumentEvent e) {
                 multicast_read = ipTextField.getText();
@@ -1215,18 +1188,18 @@ public class Monitor extends JFrame {
             public void removeUpdate(DocumentEvent e) {
                 multicast_write = ipTextFieldStim.getText();
 
-                Boolean v = validMulticast(multicast_write);
+                Boolean validMulticast = validMulticast(multicast_write);
                 if (!validMulticast(multicast_write)) ipTextFieldStim.setBackground(Color.red);
                 else ipTextFieldStim.setBackground(Color.white);
 
-                logger.info("multicastStim address has changed: " + multicast_write + " valid="  + v);
+                logger.info("multicastStim address has changed: " + multicast_write + " valid="  + validMulticast);
             }
             public void insertUpdate(DocumentEvent e) {
                 multicast_write = ipTextFieldStim.getText();
-                Boolean v = validMulticast(multicast_write);
+                Boolean validMulticast = validMulticast(multicast_write);
                 if (!validMulticast(multicast_write)) ipTextFieldStim.setBackground(Color.red);
                 else ipTextFieldStim.setBackground(Color.white);
-                logger.info("multicast address has changed: " + multicast_write);
+                logger.info("multicastStim address has changed: " + multicast_write + " valid="  + validMulticast);
             }
         });
 
@@ -1563,105 +1536,4 @@ public class Monitor extends JFrame {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void UpdateMessageTable(String received, Timestamp ts) {
-        // do some XML parsing
-        DocumentBuilderFactory dbf =
-                DocumentBuilderFactory.newInstance();
-        DocumentBuilder db = null;
-        Document doc = null;
-        InputSource is = new InputSource();
-        is.setCharacterStream(new StringReader(received.trim()));
-
-        StringBuilder m = new StringBuilder();
-        Validator.ValidateSource(received.trim(), "data.xsd", m);
-        logger.debug("validator output: " + m.toString());
-
-        try {
-            db = dbf.newDocumentBuilder();
-            doc = db.parse(is);
-        } catch (ParserConfigurationException e) {
-            logger.error(e.getLocalizedMessage());
-        } catch (SAXException e) {
-            logger.error(e.getLocalizedMessage());
-        } catch (IOException e) {
-            logger.error(e.getLocalizedMessage());
-        }
-
-        NodeList nodes = doc.getElementsByTagName("data");
-
-        if (nodes != null && (nodes.getLength() == 1)) {
-
-            tableMessageData.clearData();
-            for (int j = 0; j < nodes.item(0).getChildNodes().getLength(); j++) {
-                if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("header")) {
-
-                    for (int jj = 0; jj < nodes.item(0).getChildNodes().item(j).getChildNodes().getLength(); jj++) {
-                        Node node = nodes.item(0).getChildNodes().item(j).getChildNodes().item(jj);
-                        if (node.getTextContent() != null && !node.getTextContent().isEmpty() && !node.getNodeName().contentEquals("#text")) {
-
-                            if (node.getNodeName().contentEquals(Types.DATA_NAME)) {
-                                String dataName = node.getTextContent();
-
-                                Vector v = new Vector();
-                                v.add("MESSAGE");
-                                v.add("TEXT");
-                                v.add(dataName);
-                                tableMessageData.addText(v);
-
-                            } else if (node.getNodeName().contentEquals(Types.DATA_ID)) {
-                                String dataId = node.getTextContent();
-                                Vector v = new Vector();
-                                v.add("ID");
-                                v.add("TEXT");
-                                v.add(dataId);
-                                tableMessageData.addText(v);
-                            } else if (node.getNodeName().contentEquals(Types.DATA_KEY)) {
-                                String dataKey = node.getTextContent();
-                            } else if (node.getNodeName().contentEquals(Types.DATA_TYPE)) {
-                                String dataType = node.getTextContent();
-                                Vector v = new Vector();
-                                v.add("TYPE");
-                                v.add("TEXT");
-                                v.add(dataType);
-                                tableMessageData.addText(v);
-                            }
-                        }
-                    }
-                } else if (nodes.item(0).getChildNodes().item(j).getNodeName().contentEquals("payload")) {
-                    Node payload = nodes.item(0).getChildNodes().item(j);
-
-                    logger.debug(ts.toString());
-
-                    Vector v2 = new Vector();
-                    v2.add("TIME");
-                    v2.add("TEXT");
-                    v2.add(ts.toString());
-                    tableMessageData.addText(v2);
-
-                    logger.debug("nr. of payload items:" + payload.getChildNodes().getLength());
-                    for (int k = 0; k < payload.getChildNodes().getLength(); k++) {
-                        if (payload.getChildNodes().item(k).getNodeName().contentEquals(Types.DATA_ITEM)) {
-                            NamedNodeMap namedNodeMap = payload.getChildNodes().item(k).getAttributes();
-
-                            logger.debug(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue() +
-                                    "  value: " + namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue() +
-                                    "  type: " + namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
-
-                            Vector v = new Vector();
-                            v.add(namedNodeMap.getNamedItem(Types.DATA_NAME).getNodeValue());
-                            v.add(namedNodeMap.getNamedItem(Types.DATA_TYPE).getNodeValue());
-                            v.add(namedNodeMap.getNamedItem(Types.DATA_VALUE).getNodeValue());
-                            tableMessageData.addText(v);
-
-                            if (namedNodeMap.getNamedItem(Types.DATA_RANGE) != null)
-                                logger.debug("  range: " + namedNodeMap.getNamedItem(Types.DATA_RANGE).getNodeValue());
-                        }
-                    }
-                }
-            }
-        } else {
-            logger.info("nodes==null or empty");
-        }
-    }
 }

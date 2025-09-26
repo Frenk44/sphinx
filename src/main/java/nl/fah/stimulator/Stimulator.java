@@ -30,7 +30,6 @@ public class Stimulator extends JFrame {
     JTextField ipTextField;
     JTextField portTextField;
 
-
     final JInternalFrame jif1 = new JInternalFrame("Frame 1")
     {
     };
@@ -60,12 +59,11 @@ public class Stimulator extends JFrame {
         port = Integer.parseInt( portTextField.getText() );
         SocketAddress socketAddress =  new InetSocketAddress(multicast, port);
 
-
         Enumeration<NetworkInterface> interfaces = null;
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         while (interfaces.hasMoreElements())
@@ -77,7 +75,7 @@ public class Stimulator extends JFrame {
         try {
             ni = NetworkInterface.getByName("eno1"); // TODO: make all interfaces available on GUI
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         //create Multicast socket to to pretending group
@@ -86,33 +84,26 @@ public class Stimulator extends JFrame {
             s = new MulticastSocket(port);
             s.setNetworkInterface(ni);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         if (group != null && s != null) try {
             s.joinGroup(group);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
-        int  count = 0;
         byte[] b = message.getBytes();
 
         DatagramPacket dp = new DatagramPacket(b, b.length, group, port);
         try {
             s.send(dp);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
-        java.util.Date date = new java.util.Date();
-
         logger.debug("data send");
-
     }
-
-
-
 
     public void init(){
 
@@ -135,13 +126,13 @@ public class Stimulator extends JFrame {
                 logger.info("empty file or not existing: " + "/resources/sphinx.properties");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         try {
             prop.load(is);
         } catch (IOException e1) {
-            e1.printStackTrace();
+            logger.error(e1.getMessage());
         }
         Path path = FileSystems.getDefault().getPath(".").toAbsolutePath();
         logger.info("path:" + path.toString());
@@ -176,17 +167,17 @@ public class Stimulator extends JFrame {
         dataKey.setEditable(false);
         dataType = new JComboBox<>(new String[]{Types.MSG_TYPE_EVENT,Types.MSG_TYPE_CONTEXT,Types.MSG_TYPE_PERSISTENT});
         dataType.addActionListener(
-                e -> {
-                    JComboBox cb = (JComboBox) e.getSource();
-                    String dataTypeString = (String) cb.getSelectedItem();
-                    logger.debug("dataType:" + dataTypeString);
+            e -> {
+                JComboBox cb = (JComboBox) e.getSource();
+                String dataTypeString = (String) cb.getSelectedItem();
+                logger.debug("dataType:" + dataTypeString);
 
-                    if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
-                        dataKey.setText("");
-                        dataKey.setEditable(false);
-                    }
-                    else dataKey.setEditable(true);
-                });
+                if (dataTypeString.contentEquals(Types.MSG_TYPE_EVENT)){
+                    dataKey.setText("");
+                    dataKey.setEditable(false);
+                }
+                else dataKey.setEditable(true);
+            });
 
 
         dataList = new JComboBox<String>(dataListNames){
@@ -217,20 +208,20 @@ public class Stimulator extends JFrame {
                 try {
                     reader = new DataInputStream(new FileInputStream(fname));
                 } catch (FileNotFoundException ex) {
-                    ex.printStackTrace();
+                    logger.error(ex.getMessage());
                 }
                 int nBytesToRead = 0;
                 try {
                     nBytesToRead = reader.available();
                 } catch (IOException ex) {
-                    ex.printStackTrace();
+                    logger.error(ex.getMessage());
                 }
                 if(nBytesToRead > 0) {
                     byte[] bytes = new byte[nBytesToRead];
                     try {
                         reader.read(bytes);
                     } catch (IOException ex) {
-                        ex.printStackTrace();
+                        logger.error(ex.getMessage());
                     }
                     xml = new String(bytes);
                     logger.info( xml);
@@ -252,9 +243,9 @@ public class Stimulator extends JFrame {
                     try {
                         doc = db.parse(is1);
                     } catch (SAXException e1) {
-                        e1.printStackTrace();
+                        logger.error(e1.getMessage());
                     } catch (IOException e1) {
-                        e1.printStackTrace();
+                        logger.error(e1.getMessage());
                     }
                 }
                 NodeList headernodes = doc.getElementsByTagName("header");
@@ -436,7 +427,7 @@ public class Stimulator extends JFrame {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    logger.error(e.getMessage());
                 }
 
             }

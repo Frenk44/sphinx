@@ -84,18 +84,18 @@ public class DataMonitor extends JFrame {
             try {
                 socket = new MulticastSocket(Integer.parseInt(portTextField.getText()));
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
             InetAddress group = null;
             try {
                 group = InetAddress.getByName(ipTextField.getText());
             } catch (UnknownHostException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
             try {
                 socket.joinGroup(group);
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
 
             while (true) {
@@ -106,7 +106,7 @@ public class DataMonitor extends JFrame {
                     try {
                         socket.receive(packet);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        logger.error(e.getLocalizedMessage());
                     }
                     String received = new String(
                             packet.getData(), 0, packet.getLength());
@@ -115,12 +115,11 @@ public class DataMonitor extends JFrame {
                     logger.info("receiverProcess received: " + received);
                     sharedData.putData(received, hSender, hPort);
 
-                    //TODO: FIFO buffer
                     if ("end".equals(received)) {
                         try {
                             socket.leaveGroup(group);
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            logger.error(e.getLocalizedMessage());
                         }
                         socket.close();
                         break;
@@ -129,7 +128,7 @@ public class DataMonitor extends JFrame {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    logger.error(e.getLocalizedMessage());
                 }
             }
         }
@@ -140,15 +139,7 @@ public class DataMonitor extends JFrame {
 
         String last_data = "xxxx";
 
-        String data;
-        String dataName;
-        String dataType;
-        String dataKey = "NOT SET";
-        String dataId = "NOT SET";
-
         long timeLastMouseEvent;
-
-        DatagramPacket packet;
 
         sharedProcess sharedData;
         Timestamp timestamp = null;
@@ -179,8 +170,8 @@ public class DataMonitor extends JFrame {
 
                     timeLastMouseEvent = new Date().getTime();
 
-                    String aap = " clickcount=" + e.getClickCount();
-                    logger.info(e.getSource().getClass() + aap + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
+                    String clickCnt = " clickcount=" + e.getClickCount();
+                    logger.info(e.getSource().getClass() + clickCnt + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
                 }
 
 
@@ -220,7 +211,7 @@ public class DataMonitor extends JFrame {
                             try {
                                 Thread.sleep(5);
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
                         }
                     }
@@ -229,7 +220,7 @@ public class DataMonitor extends JFrame {
                         try {
                             Thread.sleep(5);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            logger.error(e.getLocalizedMessage());
                         }
                     }
                 }
@@ -239,7 +230,7 @@ public class DataMonitor extends JFrame {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        logger.error(e.getLocalizedMessage());
                     }
                 }
             }

@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import static nl.fah.logger.LoggerTool.logger;
+
 /**
  *
  *
@@ -51,9 +53,9 @@ public class DataLoggerImpl implements DataLogger {
         try {
             writer = new PrintWriter(name, "UTF-8");
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
         writer.println(dump);
         writer.close();

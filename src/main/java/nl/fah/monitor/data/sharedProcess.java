@@ -60,7 +60,7 @@ public class sharedProcess extends Thread {
         try {
             while(true) Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
     }
 

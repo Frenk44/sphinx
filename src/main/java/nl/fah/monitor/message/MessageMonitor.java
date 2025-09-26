@@ -53,7 +53,6 @@ public class MessageMonitor extends JFrame {
 
     private class InputProcess implements Runnable {
 
-        String data;
         String dataName;
         String dataId = "NOT SET";
         String dataKey = "NOT SET";
@@ -83,8 +82,8 @@ public class MessageMonitor extends JFrame {
 
                     timeLastMouseEvent = new Date().getTime();
 
-                    String aap = " clickcount=" + e.getClickCount();
-                    logger.debug(e.getSource().getClass() + aap + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
+                    String clickCnt = " clickcount=" + e.getClickCount();
+                    logger.debug(e.getSource().getClass() + clickCnt + " position clicked = " + table.rowAtPoint(e.getPoint())  + "," +  table.columnAtPoint(e.getPoint()) );
                 }
 
 
@@ -97,7 +96,7 @@ public class MessageMonitor extends JFrame {
             try {
                 interfaces = NetworkInterface.getNetworkInterfaces();
             } catch (SocketException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
 
             while (interfaces.hasMoreElements())
@@ -122,22 +121,18 @@ public class MessageMonitor extends JFrame {
                                 group = InetAddress.getByName(multicast);
 
                             } catch (UnknownHostException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
 
-
-
-
-                            NetworkInterface ni = NetworkInterface.getByName("hme0");
                             try {
                                 socket.joinGroup(group);
 
                                 logger.info("listening to " + multicast + ":" +  port);
                                 break;
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
                             Thread.sleep(250);
                         }
@@ -152,7 +147,7 @@ public class MessageMonitor extends JFrame {
                                 socket.leaveGroup(group);
                                 logger.info("STOP LOGGING\n");
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                logger.error(e.getLocalizedMessage());
                             }
                             break;
                         }
@@ -161,7 +156,9 @@ public class MessageMonitor extends JFrame {
                         update(socket);
                         Thread.sleep(10);
                     }
-                } catch (InterruptedException | SocketException e) { e.printStackTrace();}
+                } catch (InterruptedException e) {
+                    logger.error(e.getLocalizedMessage());
+                }
             }
 
         }
@@ -177,14 +174,13 @@ public class MessageMonitor extends JFrame {
             } catch (SocketTimeoutException e) {
                 TimeOut = true;
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
             }
             if (!TimeOut) {
                 String received = new String(packet.getData());
                 logger.debug(packet.getAddress().getHostName() + " sends\n" + received);
                 UpdateTable(received);
             }
-            // TODO : auto scroll down
         }
 
         @SuppressWarnings("unchecked")
@@ -192,7 +188,7 @@ public class MessageMonitor extends JFrame {
             // do some XML parsing
             DocumentBuilderFactory dbf =
                     DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = null;
+            DocumentBuilder db;
             Document doc = null;
             InputSource is = new InputSource();
             is.setCharacterStream(new StringReader(received.trim()));
@@ -204,15 +200,9 @@ public class MessageMonitor extends JFrame {
             try {
                 db = dbf.newDocumentBuilder();
                 doc = db.parse(is);
-            } catch (ParserConfigurationException e) {
-                e.printStackTrace();
-            } catch (SAXException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (ParserConfigurationException | SAXException | IOException e) {
+                logger.error(e.getLocalizedMessage());
             }
-
-
 
             NodeList nodes = doc.getElementsByTagName("data");
 

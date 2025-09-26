@@ -76,12 +76,6 @@ public class LoggerTool extends JFrame {
                 e.printStackTrace();
             }
 
-/*            try {
-                socket.joinGroup(group);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-*/
             boolean firstTime = true;
             while (true) {
 
@@ -100,7 +94,7 @@ public class LoggerTool extends JFrame {
                         socket.joinGroup(group);
 
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        logger.error(e.getLocalizedMessage());
                     }
                 }
                 loggingPrev = logging;
@@ -118,7 +112,7 @@ public class LoggerTool extends JFrame {
                     } catch (SocketTimeoutException e) {
                         TimeOut = true;
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        logger.error(e.getLocalizedMessage());
                     }
 
                     if (!TimeOut) {
@@ -139,12 +133,8 @@ public class LoggerTool extends JFrame {
                         try {
                             db = dbf.newDocumentBuilder();
                             doc = db.parse(is);
-                        } catch (ParserConfigurationException e) {
-                            e.printStackTrace();
-                        } catch (SAXException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        } catch (ParserConfigurationException | SAXException | IOException e) {
+                            logger.error(e.getLocalizedMessage());
                         }
 
                         NodeList nodes = doc.getElementsByTagName("data");
@@ -270,9 +260,7 @@ public class LoggerTool extends JFrame {
         DestPanel.add(logInfoLabel);
 
         add(DestPanel, BorderLayout.NORTH );
-
     }
-
 
     public static void main(String[] args) {
         Thread t = new Thread(new DaemonLoggerProcess());
