@@ -1,22 +1,20 @@
 package nl.fah.common;
 
-import nl.fah.logger.DataLogger;
+
+import nl.fah.monitor.message.MessageMonitor;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.Packet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.util.zip.Adler32;
-import java.util.zip.CheckedInputStream;
-import java.util.zip.CheckedOutputStream;
 
 public class Utils {
+    static Logger logger = LoggerFactory.getLogger(Utils.class);
+
     public static boolean validIP(String ip) {
         if (ip == null || ip.isEmpty()) return false;
         ip = ip.trim();
@@ -71,7 +69,6 @@ public class Utils {
         }
 
         return sb.toString();
-
     }
     
     public static void dumpPCAP(Packet[] packets, String fileName) throws PcapNativeException, NotOpenException, IOException {
@@ -83,10 +80,9 @@ public class Utils {
         for (Packet packet:packets)
         {
             try {
-
                 dumper.dump(packet, handle.getTimestamp());
             } catch (NotOpenException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             }
         }
         dumper.close();
